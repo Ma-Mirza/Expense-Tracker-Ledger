@@ -1,220 +1,331 @@
- <!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Petty Cash & Expense Management System</title>
+    <title>LedgerPro | Accounting Hub</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS (xlsx) for Excel generation -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        qb: {
+                            green: '#2CA01C',
+                            darkGreen: '#238016',
+                            sidebar: '#1E252B',
+                            hover: '#2A333D',
+                            accent: '#0077C5'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- SheetJS (xlsx) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- FontAwesome Icons -->
+    <!-- FontAwesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 4px; }
+        .sidebar-active {
+            background-color: #2CA01C !important;
+            color: #ffffff !important;
+            font-weight: 600;
         }
-        ::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-        .active-tab {
-            border-bottom: 2px solid #a855f7;
-            color: #a855f7;
-        }
+        .sidebar-active i { color: #ffffff !important; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col">
+<body class="h-full text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 antialiased flex flex-col md:flex-row overflow-hidden transition-colors duration-200">
 
-    <!-- Top Navigation / Header -->
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="p-2 bg-purple-600/20 text-purple-400 rounded-lg border border-purple-500/30">
-                    <i class="fa-solid fa-wallet text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg text-slate-100 tracking-wide">Expense Tracker & Ledger</h1>
-                    <p class="text-xs text-slate-400">IndexedDB Local Storage • Multi-Head Manager</p>
+    <!-- HOVER-EXPANDABLE COLLAPSIBLE SIDEBAR -->
+    <aside class="group w-full md:w-16 hover:md:w-64 bg-qb-sidebar text-slate-300 flex-shrink-0 flex flex-col justify-between border-r border-slate-800 z-30 transition-all duration-300 ease-in-out overflow-hidden shadow-xl">
+        <div>
+            <!-- Company / Logo Branding -->
+            <div class="h-16 px-4 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/40 min-w-[250px]">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-md bg-qb-green flex items-center justify-center text-white font-bold text-lg shadow-sm flex-shrink-0">
+                        <span>L</span>
+                    </div>
+                    <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        <h1 class="font-bold text-sm text-white tracking-tight leading-none">LedgerPro</h1>
+                        <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Accounting Hub</span>
+                    </div>
                 </div>
             </div>
-            
-            <div class="flex items-center space-x-3">
-                <button onclick="exportDataBackup()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-download"></i> Backup DB
+
+            <!-- Global Action Button -->
+            <div class="p-3 min-w-[250px]">
+                <button onclick="switchTab('tab-expense')" class="w-full bg-qb-green hover:bg-qb-darkGreen text-white font-semibold py-2.5 px-3 rounded-xl shadow-sm text-xs transition-all duration-150 flex items-center justify-start gap-3.5">
+                    <i class="fa-solid fa-plus text-sm w-5 text-center flex-shrink-0"></i>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">+ New Entry</span>
                 </button>
-                <label class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition cursor-pointer flex items-center gap-1.5">
-                    <i class="fa-solid fa-upload"></i> Restore DB
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="px-2 space-y-1 min-w-[250px]">
+                <button onclick="switchTab('tab-dashboard')" id="btn-tab-dashboard" class="sidebar-active w-full text-left px-3 py-2.5 rounded-lg text-xs font-medium flex items-center gap-3.5 transition hover:bg-qb-hover hover:text-white">
+                    <i class="fa-solid fa-chart-pie text-sm w-5 text-center flex-shrink-0 text-slate-400"></i>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Dashboard</span>
+                </button>
+
+                <button onclick="switchTab('tab-expense')" id="btn-tab-expense" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 flex items-center gap-3.5 transition hover:bg-qb-hover hover:text-white">
+                    <i class="fa-solid fa-receipt text-sm w-5 text-center flex-shrink-0 text-slate-400"></i>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Expenses Log</span>
+                </button>
+
+                <button onclick="switchTab('tab-cash')" id="btn-tab-cash" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 flex items-center gap-3.5 transition hover:bg-qb-hover hover:text-white">
+                    <i class="fa-solid fa-building-columns text-sm w-5 text-center flex-shrink-0 text-slate-400"></i>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Head Office Cash</span>
+                </button>
+
+                <button onclick="switchTab('tab-petty-transfer')" id="btn-tab-petty-transfer" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 flex items-center gap-3.5 transition hover:bg-qb-hover hover:text-white">
+                    <i class="fa-solid fa-hand-holding-dollar text-sm w-5 text-center flex-shrink-0 text-slate-400"></i>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Issue Petty Cash</span>
+                </button>
+
+                <button onclick="switchTab('tab-heads')" id="btn-tab-heads" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 flex items-center gap-3.5 transition hover:bg-qb-hover hover:text-white">
+                    <i class="fa-solid fa-sitemap text-sm w-5 text-center flex-shrink-0 text-slate-400"></i>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Chart of Accounts</span>
+                </button>
+
+                <button onclick="switchTab('tab-reports')" id="btn-tab-reports" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 flex items-center gap-3.5 transition hover:bg-qb-hover hover:text-white">
+                    <i class="fa-solid fa-file-excel text-sm w-5 text-center flex-shrink-0 text-slate-400"></i>
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Reports & Exports</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Theme Switcher, Month End Rollover & Data Utilities -->
+        <div class="p-2 border-t border-slate-800 bg-slate-950/20 space-y-2 min-w-[250px]">
+            <!-- Month-End Closeout / Reset Button -->
+            <button onclick="triggerMonthEndCloseout()" class="w-full bg-rose-900/80 hover:bg-rose-800 text-rose-100 text-xs py-2 px-3 rounded-lg border border-rose-700/60 transition flex items-center gap-3.5">
+                <i class="fa-solid fa-calendar-check text-sm w-5 text-center flex-shrink-0 text-rose-300"></i>
+                <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap font-medium">Month-End Closeout</span>
+            </button>
+
+            <!-- Dark / Light Mode Toggle -->
+            <button onclick="toggleTheme()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-3 rounded-lg border border-slate-700/60 transition flex items-center gap-3.5">
+                <i id="themeToggleIcon" class="fa-solid fa-moon text-sm w-5 text-center flex-shrink-0 text-amber-400"></i>
+                <span id="themeToggleText" class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap font-medium">Dark Theme</span>
+            </button>
+
+            <!-- Backup / Restore -->
+            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 grid grid-cols-2 gap-2 pt-1">
+                <button onclick="exportDataBackup()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] py-1.5 px-2 rounded border border-slate-700/60 transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Backup
+                </button>
+                <label class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] py-1.5 px-2 rounded border border-slate-700/60 transition cursor-pointer flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Restore
                     <input type="file" id="restoreFile" accept=".json" onchange="importDataBackup(event)" class="hidden">
                 </label>
             </div>
         </div>
-    </header>
+    </aside>
 
-    <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-
-        <!-- SECTION 1: HEAD OFFICE CASH CARDS -->
-        <div>
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Head Office Funds</h4>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-400 font-medium">Total HO Cash Received</p>
-                        <h3 id="statTotalHOCash" class="text-xl font-bold text-emerald-400 mt-1">Rs. 0.00</h3>
-                    </div>
-                    <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20">
-                        <i class="fa-solid fa-building-columns text-lg"></i>
-                    </div>
+    <!-- MAIN WORKSPACE CONTAINER -->
+    <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+        
+        <!-- TOP NAVBAR: SMART FREQUENT HEADS QUICK-ACTION BAR -->
+        <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 md:px-6 flex items-center justify-between shadow-sm z-20 gap-4 transition-colors">
+            <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none flex-1">
+                <div class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider whitespace-nowrap me-1 flex items-center gap-1">
+                    <i class="fa-solid fa-bolt text-amber-500"></i> Frequent Heads:
                 </div>
-
-                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-400 font-medium">Issued to Petty Float</p>
-                        <h3 id="statTotalMovedPetty" class="text-xl font-bold text-amber-400 mt-1">Rs. 0.00</h3>
-                    </div>
-                    <div class="p-3 bg-amber-500/10 text-amber-400 rounded-lg border border-amber-500/20">
-                        <i class="fa-solid fa-arrow-right-arrow-left text-lg"></i>
-                    </div>
-                </div>
-
-                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-400 font-medium">Direct HO Expenses</p>
-                        <h3 id="statDirectHOExpenses" class="text-xl font-bold text-rose-400 mt-1">Rs. 0.00</h3>
-                    </div>
-                    <div class="p-3 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20">
-                        <i class="fa-solid fa-file-invoice-dollar text-lg"></i>
-                    </div>
-                </div>
-
-                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-400 font-medium">HO Cash Balance</p>
-                        <h3 id="statHOBalance" class="text-xl font-bold text-slate-200 mt-1">Rs. 0.00</h3>
-                    </div>
-                    <div class="p-3 bg-slate-800 text-slate-300 rounded-lg border border-slate-700">
-                        <i class="fa-solid fa-vault text-lg"></i>
-                    </div>
+                <div id="frequentHeadsContainer" class="flex items-center gap-2">
+                    <!-- Frequently used heads auto-populated dynamically -->
                 </div>
             </div>
-        </div>
 
-        <!-- SECTION 2: PETTY CASH LEDGER CARDS -->
-        <div>
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Petty Cash Drawer Status</h4>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-slate-900/80 border border-purple-500/30 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-purple-400 font-medium">Total Petty Cash Received</p>
-                        <h3 id="statTotalPetty" class="text-2xl font-bold text-purple-400 mt-1">Rs. 0.00</h3>
-                    </div>
-                    <div class="p-3 bg-purple-500/10 text-purple-400 rounded-lg border border-purple-500/20">
-                        <i class="fa-solid fa-cash-register text-xl"></i>
-                    </div>
-                </div>
-
-                <div class="bg-slate-900/80 border border-rose-500/30 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-rose-400 font-medium">Petty Expenses (Spent)</p>
-                        <h3 id="statUtilizedPetty" class="text-2xl font-bold text-rose-400 mt-1">Rs. 0.00</h3>
-                    </div>
-                    <div class="p-3 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20">
-                        <i class="fa-solid fa-receipt text-xl"></i>
-                    </div>
-                </div>
-
-                <div class="bg-slate-900/80 border border-blue-500/30 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-blue-400 font-medium">Remaining Petty Cash</p>
-                        <h3 id="statRemainingPetty" class="text-2xl font-bold text-blue-400 mt-1">Rs. 0.00</h3>
-                    </div>
-                    <div class="p-3 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20">
-                        <i class="fa-solid fa-scale-balanced text-xl"></i>
-                    </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+                <div class="w-8 h-8 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-200 font-semibold text-xs shadow-sm">
+                    <i class="fa-solid fa-user-gear"></i>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <!-- Navigation Tabs -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-            <div class="flex border-b border-slate-800 overflow-x-auto">
-                <button onclick="switchTab('tab-expense')" id="btn-tab-expense" class="active-tab px-5 py-3 text-sm font-medium whitespace-nowrap transition flex items-center gap-2">
-                    <i class="fa-solid fa-minus-circle"></i> Record Expense
-                </button>
-                <button onclick="switchTab('tab-cash')" id="btn-tab-cash" class="text-slate-400 hover:text-slate-200 px-5 py-3 text-sm font-medium whitespace-nowrap transition flex items-center gap-2">
-                    <i class="fa-solid fa-building-columns"></i> Head Office Cash
-                </button>
-                <button onclick="switchTab('tab-petty-transfer')" id="btn-tab-petty-transfer" class="text-slate-400 hover:text-slate-200 px-5 py-3 text-sm font-medium whitespace-nowrap transition flex items-center gap-2">
-                    <i class="fa-solid fa-arrow-right-arrow-left"></i> Issue Petty Cash
-                </button>
-                <button onclick="switchTab('tab-heads')" id="btn-tab-heads" class="text-slate-400 hover:text-slate-200 px-5 py-3 text-sm font-medium whitespace-nowrap transition flex items-center gap-2">
-                    <i class="fa-solid fa-folder-tree"></i> Expense Heads
-                </button>
-                <button onclick="switchTab('tab-reports')" id="btn-tab-reports" class="text-slate-400 hover:text-slate-200 px-5 py-3 text-sm font-medium whitespace-nowrap transition flex items-center gap-2">
-                    <i class="fa-solid fa-file-excel"></i> Excel Export
-                </button>
-            </div>
+        <!-- DASHBOARD & MAIN VIEW BODY -->
+        <main class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-4 md:p-6 space-y-6 transition-colors">
 
-            <div class="p-5">
-                <!-- TAB 1: RECORD EXPENSE -->
-                <div id="tab-expense" class="tab-content space-y-6">
-                    <form id="expenseForm" onsubmit="handleSaveExpense(event)" class="bg-slate-950 p-4 rounded-xl border border-slate-800 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- TAB 1: DASHBOARD VIEW -->
+            <div id="tab-dashboard" class="tab-content space-y-6">
+                <!-- Summary KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-start justify-between">
                         <div>
-                            <label class="block text-xs text-slate-400 font-medium mb-1">Date *</label>
-                            <input type="date" id="expDate" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                            <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Cash Received</span>
+                            <h3 id="dashTotalHOCash" class="text-2xl font-bold text-slate-900 dark:text-white mt-1">Rs. 0.00</h3>
+                            <span class="inline-block mt-2 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-800">
+                                <i class="fa-solid fa-arrow-down-left me-1"></i> HO Fund Deposit
+                            </span>
                         </div>
+                        <div class="p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-slate-600 dark:text-slate-300">
+                            <i class="fa-solid fa-vault text-xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-start justify-between">
                         <div>
-                            <label class="block text-xs text-slate-400 font-medium mb-1">Paid From (Source) *</label>
-                            <select id="expSource" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                            <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Issued to Petty Cash</span>
+                            <h3 id="dashTotalMovedPetty" class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">Rs. 0.00</h3>
+                            <span class="inline-block mt-2 text-[11px] font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-100 dark:border-amber-800">
+                                <i class="fa-solid fa-arrows-rotate me-1"></i> Petty Float Allocated
+                            </span>
+                        </div>
+                        <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-lg text-amber-600 dark:text-amber-400">
+                            <i class="fa-solid fa-hand-holding-dollar text-xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-start justify-between">
+                        <div>
+                            <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Expenses Spent</span>
+                            <h3 id="dashTotalExpenses" class="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">Rs. 0.00</h3>
+                            <span class="inline-block mt-2 text-[11px] font-medium text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded border border-rose-100 dark:border-rose-800">
+                                <i class="fa-solid fa-arrow-up-right me-1"></i> All Utilized Funds
+                            </span>
+                        </div>
+                        <div class="p-3 bg-rose-50 dark:bg-rose-950/40 rounded-lg text-rose-600 dark:text-rose-400">
+                            <i class="fa-solid fa-receipt text-xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-start justify-between">
+                        <div>
+                            <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Remaining HO Balance</span>
+                            <h3 id="dashHOBalance" class="text-2xl font-bold text-qb-green dark:text-emerald-400 mt-1">Rs. 0.00</h3>
+                            <span class="inline-block mt-2 text-[11px] font-medium text-qb-darkGreen dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                                <i class="fa-solid fa-scale-balanced me-1"></i> Available Liquid Cash
+                            </span>
+                        </div>
+                        <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg text-qb-green dark:text-emerald-400">
+                            <i class="fa-solid fa-building-columns text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Petty Cash Drawer Overview Card -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-cash-register text-qb-accent text-lg"></i>
+                            <h3 class="font-bold text-slate-800 dark:text-slate-100 text-sm">Petty Cash Drawer Status</h3>
+                        </div>
+                        <button onclick="switchTab('tab-petty-transfer')" class="text-xs text-qb-accent hover:underline font-semibold">Manage Float →</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="p-4 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700">
+                            <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">Float Received</div>
+                            <div id="dashPettyTotal" class="text-lg font-bold text-slate-800 dark:text-slate-100 mt-1">Rs. 0.00</div>
+                        </div>
+                        <div class="p-4 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700">
+                            <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">Petty Expenses Claimed</div>
+                            <div id="dashPettyUtilized" class="text-lg font-bold text-rose-600 dark:text-rose-400 mt-1">Rs. 0.00</div>
+                        </div>
+                        <div class="p-4 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700">
+                            <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">Current Petty Cash Balance</div>
+                            <div id="dashPettyRemaining" class="text-lg font-bold text-qb-green dark:text-emerald-400 mt-1">Rs. 0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Snapshot -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800">
+                        <h3 class="font-bold text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400"><i class="fa-solid fa-clock-rotate-left me-1"></i> Recent Expense Activity (Sorted by Date)</h3>
+                        <button onclick="switchTab('tab-expense')" class="text-xs text-qb-accent hover:underline font-medium">View All Log</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left text-slate-700 dark:text-slate-300">
+                            <thead class="bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
+                                <tr>
+                                    <th class="p-3">Date</th>
+                                    <th class="p-3">Payment Source</th>
+                                    <th class="p-3">Main Category</th>
+                                    <th class="p-3">Sub Account</th>
+                                    <th class="p-3 text-right">Amount (PKR)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashRecentTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: EXPENSES VIEW -->
+            <div id="tab-expense" class="tab-content hidden space-y-6">
+                <!-- Record Expense Card Form -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
+                    <div class="border-b border-slate-100 dark:border-slate-700/60 pb-3 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-plus text-qb-green text-base"></i>
+                        <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Record New Transaction Entry</h3>
+                    </div>
+
+                    <form id="expenseForm" onsubmit="handleSaveExpense(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                        <div>
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Transaction Date *</label>
+                            <input type="date" id="expDate" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Paid From (Source) *</label>
+                            <select id="expSource" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
                                 <option value="petty">Petty Cash Drawer</option>
                                 <option value="ho">HO Total Balance</option>
                             </select>
                         </div>
+
                         <div>
-                            <label class="block text-xs text-slate-400 font-medium mb-1">Main Head *</label>
-                            <select id="expMainHead" onchange="populateSubHeadDropdown()" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Main Category Head *</label>
+                            <select id="expMainHead" onchange="populateSubHeadDropdown()" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
                                 <option value="">Select Main Head</option>
                             </select>
                         </div>
+
                         <div>
-                            <label class="block text-xs text-slate-400 font-medium mb-1">Sub Head *</label>
-                            <select id="expSubHead" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Sub Account Head *</label>
+                            <select id="expSubHead" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
                                 <option value="">Select Sub Head</option>
                             </select>
                         </div>
+
                         <div>
-                            <label class="block text-xs text-slate-400 font-medium mb-1">Amount (PKR) *</label>
-                            <input type="number" id="expAmount" min="0.01" step="0.01" placeholder="0.00" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Amount (PKR) *</label>
+                            <input type="number" id="expAmount" min="0.01" step="0.01" placeholder="0.00" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
                         </div>
-                        <div class="lg:col-span-4">
-                            <label class="block text-xs text-slate-400 font-medium mb-1">Particulars / Description</label>
-                            <input type="text" id="expDesc" placeholder="Describe the expense details..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
-                        </div>
+
                         <div class="flex items-end">
-                            <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-2 px-4 rounded-lg text-xs transition">
-                                <i class="fa-solid fa-check me-1"></i> Save Expense
+                            <button type="submit" class="w-full bg-qb-green hover:bg-qb-darkGreen text-white font-semibold py-2 px-4 rounded-lg text-xs transition shadow-sm flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-check"></i> Save Entry
                             </button>
                         </div>
-                    </form>
 
-                    <div class="flex justify-between items-center">
-                        <h4 class="font-bold text-sm text-slate-300">Expenses Log</h4>
-                        <button onclick="exportAllExpensesExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition">
-                            <i class="fa-solid fa-file-excel me-1"></i> Export All
+                        <div class="md:col-span-2 lg:col-span-6">
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Particulars / Description</label>
+                            <input type="text" id="expDesc" placeholder="Enter transaction note or memo details..." class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Expense Table Log -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden space-y-3 p-5">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">Master Expenses Log (Sorted by Date)</h4>
+                        <button onclick="exportAllExpensesExcel()" class="bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-xs px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-excel text-emerald-600"></i> Export Log Excel
                         </button>
                     </div>
 
-                    <div class="overflow-x-auto border border-slate-800 rounded-xl">
-                        <table class="w-full text-xs text-left text-slate-300">
-                            <thead class="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider">
+                    <div class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <table class="w-full text-xs text-left text-slate-700 dark:text-slate-300">
+                            <thead class="bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
                                 <tr>
                                     <th class="p-3">Date</th>
                                     <th class="p-3">Source</th>
@@ -225,37 +336,46 @@
                                     <th class="p-3 text-center">Action</th>
                                 </tr>
                             </thead>
-                            <tbody id="expenseTableBody" class="divide-y divide-slate-800/60 bg-slate-900/40"></tbody>
+                            <tbody id="expenseTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
                         </table>
                     </div>
                 </div>
+            </div>
 
-                <!-- TAB 2: HEAD OFFICE CASH -->
-                <div id="tab-cash" class="tab-content hidden space-y-6">
-                    <form id="cashInputForm" onsubmit="handleSaveCashInput(event)" class="bg-slate-950 p-4 rounded-xl border border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- TAB 3: HEAD OFFICE CASH -->
+            <div id="tab-cash" class="tab-content hidden space-y-6">
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
+                    <div class="border-b border-slate-100 dark:border-slate-700/60 pb-3 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-building-columns text-slate-700 dark:text-slate-300"></i>
+                        <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Record Head Office Cash Deposit</h3>
+                    </div>
+
+                    <form id="cashInputForm" onsubmit="handleSaveCashInput(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-slate-400 font-medium mb-1">Date *</label>
-                            <input type="date" id="cashDate" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Date *</label>
+                            <input type="date" id="cashDate" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
                         </div>
                         <div>
-                            <label class="block text-xs text-slate-400 font-medium mb-1">HO Amount Received (PKR) *</label>
-                            <input type="number" id="cashAmount" min="0.01" step="0.01" placeholder="0.00" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">HO Amount Received (PKR) *</label>
+                            <input type="number" id="cashAmount" min="0.01" step="0.01" placeholder="0.00" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
                         </div>
                         <div>
-                            <label class="block text-xs text-slate-400 font-medium mb-1">Reference / Note</label>
-                            <input type="text" id="cashNote" placeholder="Cheque / Transfer Ref..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Reference / Cheque Note</label>
+                            <input type="text" id="cashNote" placeholder="Transfer / Cheque Reference..." class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
                         </div>
                         <div class="md:col-span-3 flex justify-end">
-                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 px-6 rounded-lg text-xs transition">
-                                <i class="fa-solid fa-plus me-1"></i> Add HO Deposit
+                            <button type="submit" class="bg-qb-green hover:bg-qb-darkGreen text-white font-semibold py-2 px-5 rounded-lg text-xs transition shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-plus"></i> Add HO Deposit
                             </button>
                         </div>
                     </form>
+                </div>
 
-                    <h4 class="font-bold text-sm text-slate-300">Head Office Deposits</h4>
-                    <div class="overflow-x-auto border border-slate-800 rounded-xl">
-                        <table class="w-full text-xs text-left text-slate-300">
-                            <thead class="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider">
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 space-y-3">
+                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">Head Office Deposits History (Sorted by Date)</h4>
+                    <div class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <table class="w-full text-xs text-left text-slate-700 dark:text-slate-300">
+                            <thead class="bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
                                 <tr>
                                     <th class="p-3">Date</th>
                                     <th class="p-3">Reference / Note</th>
@@ -263,37 +383,46 @@
                                     <th class="p-3 text-center">Action</th>
                                 </tr>
                             </thead>
-                            <tbody id="cashTableBody" class="divide-y divide-slate-800/60 bg-slate-900/40"></tbody>
+                            <tbody id="cashTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
                         </table>
                     </div>
                 </div>
+            </div>
 
-                <!-- TAB 3: ISSUE PETTY CASH -->
-                <div id="tab-petty-transfer" class="tab-content hidden space-y-6">
-                    <form id="pettyTransferForm" onsubmit="handleSavePettyTransfer(event)" class="bg-slate-950 p-4 rounded-xl border border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- TAB 4: ISSUE PETTY CASH -->
+            <div id="tab-petty-transfer" class="tab-content hidden space-y-6">
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
+                    <div class="border-b border-slate-100 dark:border-slate-700/60 pb-3 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-hand-holding-dollar text-amber-600 dark:text-amber-400"></i>
+                        <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Issue Funds to Petty Cash Drawer</h3>
+                    </div>
+
+                    <form id="pettyTransferForm" onsubmit="handleSavePettyTransfer(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-slate-400 font-medium mb-1">Date *</label>
-                            <input type="date" id="pettyDate" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Transfer Date *</label>
+                            <input type="date" id="pettyDate" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
                         </div>
                         <div>
-                            <label class="block text-xs text-slate-400 font-medium mb-1">Amount to Move to Petty Cash (PKR) *</label>
-                            <input type="number" id="pettyAmount" min="0.01" step="0.01" placeholder="0.00" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Transfer Amount (PKR) *</label>
+                            <input type="number" id="pettyAmount" min="0.01" step="0.01" placeholder="0.00" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
                         </div>
                         <div>
-                            <label class="block text-xs text-slate-400 font-medium mb-1">Custodian / Note</label>
-                            <input type="text" id="pettyNote" placeholder="Transferred to petty drawer..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Custodian / Note</label>
+                            <input type="text" id="pettyNote" placeholder="Issued to petty manager..." class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
                         </div>
                         <div class="md:col-span-3 flex justify-end">
-                            <button type="submit" class="bg-amber-600 hover:bg-amber-500 text-white font-medium py-2 px-6 rounded-lg text-xs transition">
-                                <i class="fa-solid fa-arrow-right-arrow-left me-1"></i> Issue to Petty Cash Drawer
+                            <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-5 rounded-lg text-xs transition shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-arrow-right-arrow-left"></i> Issue Float
                             </button>
                         </div>
                     </form>
+                </div>
 
-                    <h4 class="font-bold text-sm text-slate-300">Petty Cash Issuance History</h4>
-                    <div class="overflow-x-auto border border-slate-800 rounded-xl">
-                        <table class="w-full text-xs text-left text-slate-300">
-                            <thead class="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider">
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 space-y-3">
+                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">Petty Cash Issuance History (Sorted by Date)</h4>
+                    <div class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <table class="w-full text-xs text-left text-slate-700 dark:text-slate-300">
+                            <thead class="bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
                                 <tr>
                                     <th class="p-3">Date</th>
                                     <th class="p-3">Custodian / Note</th>
@@ -301,62 +430,83 @@
                                     <th class="p-3 text-center">Action</th>
                                 </tr>
                             </thead>
-                            <tbody id="pettyTableBody" class="divide-y divide-slate-800/60 bg-slate-900/40"></tbody>
+                            <tbody id="pettyTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
                         </table>
                     </div>
                 </div>
+            </div>
 
-                <!-- TAB 4: EXPENSE HEADS -->
-                <div id="tab-heads" class="tab-content hidden space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <form id="newMainHeadForm" onsubmit="handleSaveNewMainHead(event)" class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                            <h5 class="font-bold text-xs text-purple-400 uppercase tracking-wider"><i class="fa-solid fa-folder-plus me-1"></i> Add New Main Head</h5>
-                            <div class="flex gap-2">
-                                <input type="text" id="newMainHeadName" placeholder="Category Name..." required class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
-                                <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium px-4 py-2 rounded-lg transition">Add</button>
-                            </div>
-                        </form>
+            <!-- TAB 5: CHART OF ACCOUNTS -->
+            <div id="tab-heads" class="tab-content hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <form id="newMainHeadForm" onsubmit="handleSaveNewMainHead(event)" class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                        <h5 class="font-bold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-folder-plus text-qb-green"></i> Add Main Account Head
+                        </h5>
+                        <div class="flex gap-2">
+                            <input type="text" id="newMainHeadName" placeholder="Category Name..." required class="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
+                            <button type="submit" class="bg-qb-green hover:bg-qb-darkGreen text-white text-xs font-semibold px-4 py-2 rounded-lg transition">Add</button>
+                        </div>
+                    </form>
 
-                        <form id="newHeadForm" onsubmit="handleSaveNewHead(event)" class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                            <h5 class="font-bold text-xs text-emerald-400 uppercase tracking-wider"><i class="fa-solid fa-file-circle-plus me-1"></i> Add New Sub Head</h5>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <select id="newHeadMainSelect" required class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500"></select>
-                                <input type="text" id="newSubHeadName" placeholder="Sub Head Name..." required class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
-                            </div>
-                            <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium py-2 rounded-lg transition">Add Sub Head</button>
-                        </form>
-                    </div>
-
-                    <h4 class="font-bold text-sm text-slate-300">Active Head Hierarchy</h4>
-                    <div id="headStructureDisplay" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    <form id="newHeadForm" onsubmit="handleSaveNewHead(event)" class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                        <h5 class="font-bold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-circle-plus text-qb-accent"></i> Add Sub Account Head
+                        </h5>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <select id="newHeadMainSelect" required class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green"></select>
+                            <input type="text" id="newSubHeadName" placeholder="Sub Head Name..." required class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-qb-green">
+                        </div>
+                        <button type="submit" class="w-full bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white text-xs font-semibold py-2 rounded-lg transition">Add Sub Account</button>
+                    </form>
                 </div>
 
-                <!-- TAB 5: EXPORT -->
-                <div id="tab-reports" class="tab-content hidden space-y-4">
-                    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                        <div class="flex gap-2">
-                            <button onclick="selectAllHeads(true)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg border border-slate-700">Select All</button>
-                            <button onclick="selectAllHeads(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg border border-slate-700">Deselect All</button>
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 space-y-4">
+                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">Chart of Accounts Tree</h4>
+                    <div id="headStructureDisplay" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+            </div>
+
+            <!-- TAB 6: REPORTS & EXPORTS -->
+            <div id="tab-reports" class="tab-content hidden space-y-4">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+                    <!-- Date Range Filter Selector -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-700 pb-4">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">From Date:</label>
+                                <input type="date" id="reportFromDate" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-qb-green">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">To Date:</label>
+                                <input type="date" id="reportToDate" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-qb-green">
+                            </div>
+                            <div class="flex items-end pt-5">
+                                <button onclick="setReportRangeThisMonth()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 font-medium">This Month</button>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <label class="inline-flex items-center text-xs text-slate-300 gap-1.5">
-                                <input type="radio" name="exportMode" value="single" checked class="accent-purple-500"> Single Sheet
-                            </label>
-                            <label class="inline-flex items-center text-xs text-slate-300 gap-1.5">
-                                <input type="radio" name="exportMode" value="separate" class="accent-purple-500"> Separate Sheets
-                            </label>
-                            <button onclick="generateCustomExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 py-2 rounded-lg font-medium transition">
-                                <i class="fa-solid fa-file-excel me-1"></i> Generate Export
+
+                        <div class="flex items-center gap-2">
+                            <button onclick="selectAllHeads(true)" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 font-medium">Select All</button>
+                            <button onclick="selectAllHeads(false)" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 font-medium">Deselect All</button>
+                            <button onclick="generateCustomExcel()" class="bg-qb-green hover:bg-qb-darkGreen text-white text-xs px-4 py-2 rounded-lg font-semibold transition shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-file-excel"></i> Export Aggregated Report
                             </button>
                         </div>
                     </div>
 
-                    <div id="headsExportCheckboxList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border border-slate-800 p-4 rounded-xl bg-slate-950 max-h-96 overflow-y-auto"></div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        <i class="fa-solid fa-circle-info text-qb-accent me-1"></i> The exported Excel will automatically <strong>club all expenses</strong> for selected heads within the chosen date range and provide a summary total sheet alongside transaction logs.
+                    </p>
                 </div>
-            </div>
-        </div>
-    </main>
 
+                <div id="headsExportCheckboxList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border border-slate-200 dark:border-slate-700 p-5 rounded-xl bg-white dark:bg-slate-800 max-h-96 overflow-y-auto shadow-sm"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- APPLICATION LOGIC ENGINE -->
     <script>
         const DEFAULT_HEADS = {
             "Salaries & Employee Expenses": ["Lhr Office Staff Salaries", "Corporate Office Staff", "Cell Site Office Staff", "CEO's Personal Expense", "Loan for employee and guards", "Gratuity Expense"],
@@ -368,7 +518,7 @@
         };
 
         let db;
-        const DB_NAME = "PettyCashDB_v2";
+        const DB_NAME = "LedgerPro_QB_v1";
         const DB_VERSION = 1;
 
         function initDatabase() {
@@ -389,14 +539,55 @@
         let state = { expenses: [], cashInputs: [], pettyTransfers: [], heads: JSON.parse(JSON.stringify(DEFAULT_HEADS)) };
 
         window.addEventListener("DOMContentLoaded", async () => {
-            document.getElementById("expDate").valueAsDate = new Date();
-            document.getElementById("cashDate").valueAsDate = new Date();
-            document.getElementById("pettyDate").valueAsDate = new Date();
+            initTheme();
+            const todayStr = new Date().toISOString().slice(0, 10);
+            document.getElementById("expDate").value = todayStr;
+            document.getElementById("cashDate").value = todayStr;
+            document.getElementById("pettyDate").value = todayStr;
+
+            setReportRangeThisMonth();
 
             await initDatabase();
             await loadAllData();
             refreshUI();
         });
+
+        function setReportRangeThisMonth() {
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+            const todayStr = now.toISOString().slice(0, 10);
+            document.getElementById("reportFromDate").value = firstDay;
+            document.getElementById("reportToDate").value = todayStr;
+        }
+
+        // Theme Toggle Engine
+        function initTheme() {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                updateThemeUI(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeUI(false);
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.theme = isDark ? 'dark' : 'light';
+            updateThemeUI(isDark);
+        }
+
+        function updateThemeUI(isDark) {
+            const icon = document.getElementById('themeToggleIcon');
+            const text = document.getElementById('themeToggleText');
+            if (isDark) {
+                icon.className = 'fa-solid fa-sun text-sm w-5 text-center flex-shrink-0 text-amber-400';
+                text.textContent = 'Light Theme';
+            } else {
+                icon.className = 'fa-solid fa-moon text-sm w-5 text-center flex-shrink-0 text-amber-400';
+                text.textContent = 'Dark Theme';
+            }
+        }
 
         async function loadAllData() {
             state.expenses = await dbGetAll("expenses");
@@ -414,6 +605,7 @@
         function refreshUI() {
             updateSummaries();
             populateHeadDropdowns();
+            renderFrequentHeadsBar();
             renderExpensesTable();
             renderCashTable();
             renderPettyTable();
@@ -457,11 +649,62 @@
             });
         }
 
-        function updateSummaries() {
+        // Smart Frequent Heads Detector Engine
+        function renderFrequentHeadsBar() {
+            const container = document.getElementById("frequentHeadsContainer");
+            container.innerHTML = "";
+
+            const headCounts = {};
+            state.expenses.forEach(exp => {
+                const key = `${exp.mainHead}||${exp.subHead}`;
+                headCounts[key] = (headCounts[key] || 0) + 1;
+            });
+
+            const sortedHeads = Object.keys(headCounts).sort((a,b) => headCounts[b] - headCounts[a]);
+
+            let topHeads = sortedHeads.slice(0, 4).map(item => {
+                const parts = item.split("||");
+                return { main: parts[0], sub: parts[1] };
+            });
+
+            if (topHeads.length === 0) {
+                topHeads = [
+                    { main: "Office & Administrative", sub: "Mess Expense" },
+                    { main: "Fleet & Maintenance", sub: "Fuel Expense" },
+                    { main: "Utilities & Communication", sub: "Mobile Phone Expense" },
+                    { main: "Office & Administrative", sub: "Stationery Expense" }
+                ];
+            }
+
+            topHeads.forEach(item => {
+                const pill = document.createElement("button");
+                pill.className = "bg-slate-100 hover:bg-qb-green hover:text-white dark:bg-slate-700/80 dark:hover:bg-qb-green text-slate-700 dark:text-slate-200 text-xs px-3 py-1 rounded-full border border-slate-200 dark:border-slate-600 font-medium transition whitespace-nowrap flex items-center gap-1.5 shadow-sm group";
+                pill.onclick = () => quickFillHead(item.main, item.sub);
+                pill.innerHTML = `<i class="fa-regular fa-bookmark text-[10px] text-slate-400 group-hover:text-white"></i> <span>${item.sub}</span>`;
+                container.appendChild(pill);
+            });
+        }
+
+        function quickFillHead(mainCategory, subCategory) {
+            switchTab('tab-expense');
+            
+            const mainSelect = document.getElementById("expMainHead");
+            mainSelect.value = mainCategory;
+            populateSubHeadDropdown();
+
+            const subSelect = document.getElementById("expSubHead");
+            subSelect.value = subCategory;
+
+            const amountInput = document.getElementById("expAmount");
+            amountInput.focus();
+            amountInput.classList.add("ring-2", "ring-qb-green");
+            setTimeout(() => amountInput.classList.remove("ring-2", "ring-qb-green"), 2000);
+        }
+
+        function getCalculatedBalances() {
             const totalHOCash = state.cashInputs.reduce((sum, item) => sum + Number(item.amount), 0);
             const totalMovedPetty = state.pettyTransfers.reduce((sum, item) => sum + Number(item.amount), 0);
             
-            // Separate expenses based on source selection (defaulting old records to 'petty')
             const directHOExpenses = state.expenses
                 .filter(item => item.source === "ho")
                 .reduce((sum, item) => sum + Number(item.amount), 0);
@@ -470,25 +713,33 @@
                 .filter(item => item.source !== "ho")
                 .reduce((sum, item) => sum + Number(item.amount), 0);
 
+            const totalExpenses = directHOExpenses + utilizedPetty;
             const hoBalance = totalHOCash - totalMovedPetty - directHOExpenses;
             const totalPetty = totalMovedPetty;
             const remainingPetty = totalPetty - utilizedPetty;
 
-            document.getElementById("statTotalHOCash").textContent = `Rs. ${totalHOCash.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
-            document.getElementById("statTotalMovedPetty").textContent = `Rs. ${totalMovedPetty.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
-            document.getElementById("statDirectHOExpenses").textContent = `Rs. ${directHOExpenses.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
-            document.getElementById("statHOBalance").textContent = `Rs. ${hoBalance.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
+            return { totalHOCash, totalMovedPetty, totalExpenses, hoBalance, totalPetty, utilizedPetty, remainingPetty };
+        }
 
-            document.getElementById("statTotalPetty").textContent = `Rs. ${totalPetty.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
-            document.getElementById("statUtilizedPetty").textContent = `Rs. ${utilizedPetty.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
-            document.getElementById("statRemainingPetty").textContent = `Rs. ${remainingPetty.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
+        function updateSummaries() {
+            const b = getCalculatedBalances();
+
+            document.getElementById("dashTotalHOCash").textContent = `Rs. ${b.totalHOCash.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
+            document.getElementById("dashTotalMovedPetty").textContent = `Rs. ${b.totalMovedPetty.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
+            document.getElementById("dashTotalExpenses").textContent = `Rs. ${b.totalExpenses.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
+            document.getElementById("dashHOBalance").textContent = `Rs. ${b.hoBalance.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
+
+            document.getElementById("dashPettyTotal").textContent = `Rs. ${b.totalPetty.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
+            document.getElementById("dashPettyUtilized").textContent = `Rs. ${b.utilizedPetty.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
+            document.getElementById("dashPettyRemaining").textContent = `Rs. ${b.remainingPetty.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
         }
 
         async function handleSaveExpense(e) {
             e.preventDefault();
+            const dateVal = document.getElementById("expDate").value;
             const record = {
-                date: document.getElementById("expDate").value,
-                source: document.getElementById("expSource").value, // "petty" or "ho"
+                date: dateVal,
+                source: document.getElementById("expSource").value,
                 mainHead: document.getElementById("expMainHead").value,
                 subHead: document.getElementById("expSubHead").value,
                 amount: parseFloat(document.getElementById("expAmount").value),
@@ -505,8 +756,9 @@
 
         async function handleSaveCashInput(e) {
             e.preventDefault();
+            const dateVal = document.getElementById("cashDate").value;
             const record = {
-                date: document.getElementById("cashDate").value,
+                date: dateVal,
                 amount: parseFloat(document.getElementById("cashAmount").value),
                 note: document.getElementById("cashNote").value,
                 createdAt: new Date().toISOString()
@@ -521,8 +773,9 @@
 
         async function handleSavePettyTransfer(e) {
             e.preventDefault();
+            const dateVal = document.getElementById("pettyDate").value;
             const record = {
-                date: document.getElementById("pettyDate").value,
+                date: dateVal,
                 amount: parseFloat(document.getElementById("pettyAmount").value),
                 note: document.getElementById("pettyNote").value,
                 createdAt: new Date().toISOString()
@@ -536,36 +789,68 @@
         }
 
         async function deleteExpense(id) {
-            if (confirm("Delete this expense?")) { await dbDelete("expenses", id); await loadAllData(); refreshUI(); }
+            if (confirm("Delete this expense transaction?")) { await dbDelete("expenses", id); await loadAllData(); refreshUI(); }
         }
         async function deleteCashInput(id) {
-            if (confirm("Delete HO deposit record?")) { await dbDelete("cashInput", id); await loadAllData(); refreshUI(); }
+            if (confirm("Delete HO cash deposit entry?")) { await dbDelete("cashInput", id); await loadAllData(); refreshUI(); }
         }
         async function deletePettyTransfer(id) {
-            if (confirm("Delete petty cash transfer?")) { await dbDelete("pettyTransfers", id); await loadAllData(); refreshUI(); }
+            if (confirm("Delete petty cash transfer entry?")) { await dbDelete("pettyTransfers", id); await loadAllData(); refreshUI(); }
+        }
+
+        // Sorting Engine (Sorted by Date descending)
+        function getSortedByDate(arr) {
+            return [...arr].sort((a,b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateB - dateA;
+            });
         }
 
         function renderExpensesTable() {
             const tbody = document.getElementById("expenseTableBody");
+            const dashBody = document.getElementById("dashRecentTableBody");
             tbody.innerHTML = "";
-            const sorted = [...state.expenses].sort((a,b) => new Date(b.date) - new Date(a.date));
-            if (!sorted.length) return tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-slate-500">No expenses recorded yet.</td></tr>`;
+            dashBody.innerHTML = "";
+
+            const sorted = getSortedByDate(state.expenses);
             
+            if (!sorted.length) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-400">No expense records found.</td></tr>`;
+                dashBody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-slate-400">No recent transactions recorded.</td></tr>`;
+                return;
+            }
+
             sorted.forEach(item => {
                 const isHO = item.source === "ho";
                 const sourceBadge = isHO 
-                    ? `<span class="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded text-[10px] font-medium">HO Balance</span>`
-                    : `<span class="px-2 py-0.5 bg-purple-500/10 border border-purple-500/30 text-purple-400 rounded text-[10px] font-medium">Petty Cash</span>`;
+                    ? `<span class="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded font-semibold text-[10px]">HO Balance</span>`
+                    : `<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded font-semibold text-[10px]">Petty Cash</span>`;
 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-800/40 border-b border-slate-800/60">
-                        <td class="p-3">${item.date}</td>
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                        <td class="p-3 font-medium text-slate-700 dark:text-slate-300">${item.date}</td>
                         <td class="p-3">${sourceBadge}</td>
-                        <td class="p-3"><span class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 text-[10px]">${item.mainHead}</span></td>
-                        <td class="p-3 font-medium text-slate-200">${item.subHead}</td>
-                        <td class="p-3 text-slate-400">${item.desc || '-'}</td>
-                        <td class="p-3 text-right font-bold text-rose-400">Rs. ${Number(item.amount).toLocaleString('en-PK', {minimumFractionDigits: 2})}</td>
-                        <td class="p-3 text-center"><button onclick="deleteExpense(${item.id})" class="text-slate-500 hover:text-rose-400 transition"><i class="fa-solid fa-trash"></i></button></td>
+                        <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-slate-600 dark:text-slate-300 text-[10px] font-medium">${item.mainHead}</span></td>
+                        <td class="p-3 font-semibold text-slate-800 dark:text-slate-100">${item.subHead}</td>
+                        <td class="p-3 text-slate-500 dark:text-slate-400">${item.desc || '-'}</td>
+                        <td class="p-3 text-right font-bold text-rose-600 dark:text-rose-400">Rs. ${Number(item.amount).toLocaleString('en-PK', {minimumFractionDigits: 2})}</td>
+                        <td class="p-3 text-center"><button onclick="deleteExpense(${item.id})" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash-can"></i></button></td>
+                    </tr>`;
+            });
+
+            sorted.slice(0, 5).forEach(item => {
+                const sourceBadge = item.source === "ho" 
+                    ? `<span class="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded text-[10px] font-semibold">HO Cash</span>`
+                    : `<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded text-[10px] font-semibold">Petty Cash</span>`;
+
+                dashBody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                        <td class="p-3 text-slate-600 dark:text-slate-400">${item.date}</td>
+                        <td class="p-3">${sourceBadge}</td>
+                        <td class="p-3 font-medium text-slate-700 dark:text-slate-300">${item.mainHead}</td>
+                        <td class="p-3 text-slate-800 dark:text-slate-100 font-semibold">${item.subHead}</td>
+                        <td class="p-3 text-right font-bold text-slate-900 dark:text-white">Rs. ${Number(item.amount).toLocaleString('en-PK', {minimumFractionDigits: 2})}</td>
                     </tr>`;
             });
         }
@@ -573,16 +858,16 @@
         function renderCashTable() {
             const tbody = document.getElementById("cashTableBody");
             tbody.innerHTML = "";
-            const sorted = [...state.cashInputs].sort((a,b) => new Date(b.date) - new Date(a.date));
-            if (!sorted.length) return tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-500">No HO deposits recorded yet.</td></tr>`;
+            const sorted = getSortedByDate(state.cashInputs);
+            if (!sorted.length) return tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-slate-400">No deposits logged yet.</td></tr>`;
 
             sorted.forEach(item => {
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-800/40 border-b border-slate-800/60">
-                        <td class="p-3">${item.date}</td>
-                        <td class="p-3 text-slate-400">${item.note || 'HO Deposit'}</td>
-                        <td class="p-3 text-right font-bold text-emerald-400">Rs. ${Number(item.amount).toLocaleString('en-PK', {minimumFractionDigits: 2})}</td>
-                        <td class="p-3 text-center"><button onclick="deleteCashInput(${item.id})" class="text-slate-500 hover:text-rose-400 transition"><i class="fa-solid fa-trash"></i></button></td>
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                        <td class="p-3 font-medium text-slate-700 dark:text-slate-300">${item.date}</td>
+                        <td class="p-3 text-slate-500 dark:text-slate-400">${item.note || 'HO Deposit'}</td>
+                        <td class="p-3 text-right font-bold text-qb-green dark:text-emerald-400">Rs. ${Number(item.amount).toLocaleString('en-PK', {minimumFractionDigits: 2})}</td>
+                        <td class="p-3 text-center"><button onclick="deleteCashInput(${item.id})" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash-can"></i></button></td>
                     </tr>`;
             });
         }
@@ -590,16 +875,16 @@
         function renderPettyTable() {
             const tbody = document.getElementById("pettyTableBody");
             tbody.innerHTML = "";
-            const sorted = [...state.pettyTransfers].sort((a,b) => new Date(b.date) - new Date(a.date));
-            if (!sorted.length) return tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-500">No petty transfers recorded yet.</td></tr>`;
+            const sorted = getSortedByDate(state.pettyTransfers);
+            if (!sorted.length) return tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-slate-400">No transfers logged yet.</td></tr>`;
 
             sorted.forEach(item => {
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-800/40 border-b border-slate-800/60">
-                        <td class="p-3">${item.date}</td>
-                        <td class="p-3 text-slate-400">${item.note || 'Issued to Petty Cash'}</td>
-                        <td class="p-3 text-right font-bold text-amber-400">Rs. ${Number(item.amount).toLocaleString('en-PK', {minimumFractionDigits: 2})}</td>
-                        <td class="p-3 text-center"><button onclick="deletePettyTransfer(${item.id})" class="text-slate-500 hover:text-rose-400 transition"><i class="fa-solid fa-trash"></i></button></td>
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                        <td class="p-3 font-medium text-slate-700 dark:text-slate-300">${item.date}</td>
+                        <td class="p-3 text-slate-500 dark:text-slate-400">${item.note || 'Issued to Petty Cash'}</td>
+                        <td class="p-3 text-right font-bold text-amber-600 dark:text-amber-400">Rs. ${Number(item.amount).toLocaleString('en-PK', {minimumFractionDigits: 2})}</td>
+                        <td class="p-3 text-center"><button onclick="deletePettyTransfer(${item.id})" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash-can"></i></button></td>
                     </tr>`;
             });
         }
@@ -655,10 +940,7 @@
             const newName = prompt(`Rename Main Head "${oldName}" to:`, oldName);
             if (!newName || newName.trim() === "" || newName === oldName) return;
             const trimmed = newName.trim();
-            if (state.heads[trimmed]) {
-                alert("A Main Head with this name already exists.");
-                return;
-            }
+            if (state.heads[trimmed]) { alert("Head name already exists."); return; }
 
             state.heads[trimmed] = state.heads[oldName];
             delete state.heads[oldName];
@@ -684,7 +966,7 @@
         }
 
         async function removeSubHead(mainCategory, subName) {
-            if (!confirm(`Are you sure you want to remove sub head "${subName}" from "${mainCategory}"?`)) return;
+            if (!confirm(`Are you sure you want to remove "${subName}"?`)) return;
             state.heads[mainCategory] = state.heads[mainCategory].filter(item => item !== subName);
             await dbSaveHeadStructure(state.heads);
             await loadAllData();
@@ -696,26 +978,26 @@
             container.innerHTML = "";
             Object.entries(state.heads).forEach(([mainCategory, subList]) => {
                 const card = document.createElement("div");
-                card.className = "bg-slate-950 p-4 rounded-xl border border-slate-800";
+                card.className = "bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-sm";
                 card.innerHTML = `
-                    <h5 class="font-bold text-xs text-slate-200 border-b border-slate-800 pb-2 mb-2 flex justify-between items-center">
+                    <h5 class="font-bold text-xs text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2 mb-2 flex justify-between items-center">
                         <span class="flex items-center gap-1.5">
-                            <i class="fa-regular fa-folder-open text-purple-400"></i> ${mainCategory}
-                            <button onclick="renameMainHead('${mainCategory.replace(/'/g, "\\'")}')" title="Rename Main Head" class="text-slate-500 hover:text-purple-400 ms-1">
-                                <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                            <i class="fa-regular fa-folder text-qb-accent"></i> ${mainCategory}
+                            <button onclick="renameMainHead('${mainCategory.replace(/'/g, "\\'")}')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 ms-1">
+                                <i class="fa-solid fa-pen text-[10px]"></i>
                             </button>
                         </span>
-                        <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">${subList.length}</span>
+                        <span class="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full font-semibold">${subList.length}</span>
                     </h5>
                     <ul class="max-h-48 overflow-y-auto space-y-1">
                         ${subList.map(sub => `
-                            <li class="text-xs text-slate-400 py-1 border-b border-slate-900 px-1 flex justify-between items-center group">
+                            <li class="text-xs text-slate-600 dark:text-slate-400 py-1 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center group">
                                 <span>${sub}</span>
-                                <div class="flex items-center gap-1.5 opacity-80 group-hover:opacity-100">
-                                    <button onclick="renameSubHead('${mainCategory.replace(/'/g, "\\'")}', '${sub.replace(/'/g, "\\'")}')" title="Rename Sub Head" class="text-slate-500 hover:text-purple-400">
-                                        <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                <div class="flex items-center gap-1.5 opacity-60 group-hover:opacity-100">
+                                    <button onclick="renameSubHead('${mainCategory.replace(/'/g, "\\'")}', '${sub.replace(/'/g, "\\'")}')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+                                        <i class="fa-solid fa-pen text-[10px]"></i>
                                     </button>
-                                    <button onclick="removeSubHead('${mainCategory.replace(/'/g, "\\'")}', '${sub.replace(/'/g, "\\'")}')" title="Remove Sub Head" class="text-slate-500 hover:text-rose-400">
+                                    <button onclick="removeSubHead('${mainCategory.replace(/'/g, "\\'")}', '${sub.replace(/'/g, "\\'")}')" class="text-slate-400 hover:text-rose-600">
                                         <i class="fa-solid fa-trash-can text-[10px]"></i>
                                     </button>
                                 </div>
@@ -731,27 +1013,16 @@
             container.innerHTML = "";
             Object.entries(state.heads).forEach(([mainHead, subs]) => {
                 const section = document.createElement("div");
-                section.className = "space-y-1.5 bg-slate-900/40 p-3 rounded-lg border border-slate-800/80";
+                section.className = "space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-200/80 dark:border-slate-700";
                 section.innerHTML = `
-                    <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 mb-1">
-                        <label class="flex items-center gap-2 font-bold text-xs text-purple-400 cursor-pointer">
-                            <input type="checkbox" onchange="toggleMainHeadGroup(this, '${mainHead}')" class="main-head-toggle accent-purple-500 rounded" data-main="${mainHead}"> ${mainHead}
+                    <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-1.5 mb-1">
+                        <label class="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-slate-200 cursor-pointer">
+                            <input type="checkbox" onchange="toggleMainHeadGroup(this, '${mainHead}')" class="main-head-toggle accent-qb-green rounded" data-main="${mainHead}"> ${mainHead}
                         </label>
-                        <button onclick="selectMainHeadForExport('${mainHead}')" class="text-[10px] bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30 transition">
-                            Select Main Head
-                        </button>
                     </div>
-                    <div class="ps-2 space-y-1">${subs.map(sub => `<label class="flex items-center gap-2 text-xs text-slate-300 py-0.5"><input type="checkbox" value="${sub}" data-main="${mainHead}" class="head-export-checkbox accent-purple-500 rounded"> ${sub}</label>`).join('')}</div>`;
+                    <div class="ps-2 space-y-1">${subs.map(sub => `<label class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 py-0.5"><input type="checkbox" value="${sub}" data-main="${mainHead}" class="head-export-checkbox accent-qb-green rounded"> ${sub}</label>`).join('')}</div>`;
                 container.appendChild(section);
             });
-        }
-
-        function selectMainHeadForExport(mainHeadName) {
-            const mainCheckbox = document.querySelector(`.main-head-toggle[data-main="${mainHeadName}"]`);
-            if (mainCheckbox) {
-                mainCheckbox.checked = !mainCheckbox.checked;
-                toggleMainHeadGroup(mainCheckbox, mainHeadName);
-            }
         }
 
         function toggleMainHeadGroup(mainCheckbox, mainHeadName) {
@@ -763,74 +1034,160 @@
         }
 
         function exportAllExpensesExcel() {
-            const defaultName = `Petty_Cash_Report_${new Date().toISOString().slice(0,10)}`;
-            const fileName = prompt("Enter Excel file name:", defaultName);
+            const defaultName = `LedgerPro_Master_Export_${new Date().toISOString().slice(0,10)}`;
+            const fileName = prompt("Enter file name for download:", defaultName);
             if (!fileName) return;
 
             const wb = XLSX.utils.book_new();
-            const wsExp = XLSX.utils.json_to_sheet(state.expenses);
-            XLSX.utils.book_append_sheet(wb, wsExp, "Expenses");
-            const wsCash = XLSX.utils.json_to_sheet(state.cashInputs);
-            XLSX.utils.book_append_sheet(wb, wsCash, "HO Deposits");
-            const wsPetty = XLSX.utils.json_to_sheet(state.pettyTransfers);
-            XLSX.utils.book_append_sheet(wb, wsPetty, "Petty Transfers");
+            const wsExp = XLSX.utils.json_to_sheet(getSortedByDate(state.expenses));
+            XLSX.utils.book_append_sheet(wb, wsExp, "Expenses Log");
+            const wsCash = XLSX.utils.json_to_sheet(getSortedByDate(state.cashInputs));
+            XLSX.utils.book_append_sheet(wb, wsCash, "HO Cash Receipts");
+            const wsPetty = XLSX.utils.json_to_sheet(getSortedByDate(state.pettyTransfers));
+            XLSX.utils.book_append_sheet(wb, wsPetty, "Petty Cash Transfers");
             XLSX.writeFile(wb, `${fileName.endsWith('.xlsx') ? fileName : fileName + '.xlsx'}`);
         }
 
+        // Custom Dynamic Date-Range & Clubbed Expense Aggregation Logic
         function generateCustomExcel() {
             const selectedSubHeads = Array.from(document.querySelectorAll('.head-export-checkbox:checked')).map(cb => cb.value);
-            if (selectedSubHeads.length === 0) {
-                alert("Please select at least one head to export.");
+            if (selectedSubHeads.length === 0) { alert("Please select at least one expense head."); return; }
+
+            const fromDate = document.getElementById("reportFromDate").value;
+            const toDate = document.getElementById("reportToDate").value;
+
+            if (!fromDate || !toDate) {
+                alert("Please select both From Date and To Date.");
                 return;
             }
 
-            const filteredExpenses = state.expenses.filter(exp => selectedSubHeads.includes(exp.subHead));
+            // Filter transactions strictly within the selected date range and selected heads
+            const filteredExpenses = state.expenses.filter(exp => {
+                const isHeadMatch = selectedSubHeads.includes(exp.subHead);
+                const isDateMatch = exp.date >= fromDate && exp.date <= toDate;
+                return isHeadMatch && isDateMatch;
+            });
+
             if (filteredExpenses.length === 0) {
-                alert("No expenses found for the selected heads.");
+                alert(`No expenses found for selected heads between ${fromDate} and ${toDate}.`);
                 return;
             }
 
-            const defaultName = `Filtered_Expenses_${new Date().toISOString().slice(0,10)}`;
-            const fileName = prompt("Enter Excel file name:", defaultName);
+            // Calculate aggregated/clubbed totals for each selected head
+            const summaryData = [];
+            const headTotalsMap = {};
+
+            selectedSubHeads.forEach(head => { headTotalsMap[head] = 0; });
+
+            filteredExpenses.forEach(exp => {
+                if (headTotalsMap[exp.subHead] !== undefined) {
+                    headTotalsMap[exp.subHead] += Number(exp.amount);
+                }
+            });
+
+            Object.entries(headTotalsMap).forEach(([headName, totalAmount]) => {
+                if (totalAmount > 0) {
+                    summaryData.push({
+                        "Expense Head": headName,
+                        "Period From": fromDate,
+                        "Period To": toDate,
+                        "Total Aggregated Amount (PKR)": totalAmount
+                    });
+                }
+            });
+
+            const defaultName = `Expense_Report_${fromDate}_to_${toDate}`;
+            const fileName = prompt("Enter file name for report:", defaultName);
             if (!fileName) return;
 
-            const mode = document.querySelector('input[name="exportMode"]:checked').value;
             const wb = XLSX.utils.book_new();
 
-            if (mode === "single") {
-                const ws = XLSX.utils.json_to_sheet(filteredExpenses);
-                XLSX.utils.book_append_sheet(wb, ws, "Filtered Expenses");
-            } else {
-                selectedSubHeads.forEach(sub => {
-                    const subExpenses = filteredExpenses.filter(e => e.subHead === sub);
-                    if (subExpenses.length > 0) {
-                        const ws = XLSX.utils.json_to_sheet(subExpenses);
-                        const sheetName = sub.substring(0, 30).replace(/[:\\/?*\[\]]/g, "_");
-                        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-                    }
+            // Sheet 1: Aggregated/Clubbed Summary
+            const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(wb, wsSummary, "Summary (Clubbed)");
+
+            // Sheet 2: Itemized Transactions Log
+            const sortedFiltered = getSortedByDate(filteredExpenses);
+            const wsDetails = XLSX.utils.json_to_sheet(sortedFiltered);
+            XLSX.utils.book_append_sheet(wb, wsDetails, "Itemized Log");
+
+            XLSX.writeFile(wb, `${fileName.endsWith('.xlsx') ? fileName : fileName + '.xlsx'}`);
+        }
+
+        // Automatic Month-End Closeout Engine
+        async function triggerMonthEndCloseout() {
+            const b = getCalculatedBalances();
+            const todayStr = new Date().toISOString().slice(0, 10);
+
+            const confirmClose = confirm(
+                `ARE YOU SURE YOU WANT TO PERFORM MONTH-END CLOSEOUT?\n\n` +
+                `Current Rollover Summary:\n` +
+                `------------------------------------\n` +
+                `• Remaining HO Cash Balance: PKR ${b.hoBalance.toLocaleString('en-PK')}\n` +
+                `• Remaining Petty Cash Balance: PKR ${b.remainingPetty.toLocaleString('en-PK')}\n\n` +
+                `System Actions:\n` +
+                `1. Auto-download backup of current month data.\n` +
+                `2. Carry forward remaining HO balance as new month starting HO Cash.\n` +
+                `3. Carry forward remaining Petty balance as new month Float Received.\n` +
+                `4. Reset all current month expense logs for clean tracking.`
+            );
+
+            if (!confirmClose) return;
+
+            // 1. Download Backup First
+            exportDataBackup();
+
+            // 2. Clear Object Stores
+            const tx1 = db.transaction("expenses", "readwrite"); await tx1.objectStore("expenses").clear();
+            const tx2 = db.transaction("cashInput", "readwrite"); await tx2.objectStore("cashInput").clear();
+            const tx3 = db.transaction("pettyTransfers", "readwrite"); await tx3.objectStore("pettyTransfers").clear();
+
+            // 3. Re-inject Rollover Opening Balances
+            if (b.hoBalance > 0) {
+                await dbAdd("cashInput", {
+                    date: todayStr,
+                    amount: b.hoBalance,
+                    note: "Rollover Balance from Previous Month Closeout",
+                    createdAt: new Date().toISOString()
                 });
             }
 
-            XLSX.writeFile(wb, `${fileName.endsWith('.xlsx') ? fileName : fileName + '.xlsx'}`);
+            if (b.remainingPetty > 0) {
+                await dbAdd("pettyTransfers", {
+                    date: todayStr,
+                    amount: b.remainingPetty,
+                    note: "Rollover Float from Previous Month Closeout",
+                    createdAt: new Date().toISOString()
+                });
+            }
+
+            await loadAllData();
+            refreshUI();
+
+            alert("Month-End Closeout successful! New month tracking is now active.");
         }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(tabId).classList.remove('hidden');
-            document.querySelectorAll('[id^="btn-tab-"]').forEach(el => {
-                el.classList.remove('active-tab');
-                el.classList.add('text-slate-400');
+
+            document.querySelectorAll('nav button').forEach(el => {
+                el.classList.remove('sidebar-active');
+                el.classList.add('text-slate-300');
             });
+
             const activeBtn = document.getElementById(`btn-${tabId}`);
-            activeBtn.classList.add('active-tab');
-            activeBtn.classList.remove('text-slate-400');
+            if (activeBtn) {
+                activeBtn.classList.add('sidebar-active');
+                activeBtn.classList.remove('text-slate-300');
+            }
         }
 
         function exportDataBackup() {
             const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
-            a.download = `PettyCash_DB_Backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.download = `LedgerPro_Backup_${new Date().toISOString().slice(0,10)}.json`;
             a.click();
         }
 
@@ -851,7 +1208,7 @@
 
                 await loadAllData();
                 refreshUI();
-                alert("Database restored successfully!");
+                alert("Database backup restored successfully!");
             };
             reader.readAsText(file);
         }
