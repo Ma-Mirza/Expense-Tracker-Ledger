@@ -40,6 +40,19 @@
             font-weight: 600;
         }
         .sidebar-active i { color: #ffffff !important; }
+        .archive-folder-card {
+            transition: all 0.2s ease;
+        }
+        .archive-folder-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .sub-folder-icon {
+            transition: transform 0.2s ease;
+        }
+        .archive-folder-card:hover .sub-folder-icon {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body class="h-full text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 antialiased flex flex-col md:flex-row overflow-hidden transition-colors duration-200">
@@ -299,7 +312,7 @@
                     </form>
                 </div>
 
-                <!-- Table with Real-time Instant Search (Comma-insensitive) -->
+                <!-- Table with Real-time Instant Search -->
                 <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden space-y-3 p-5">
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                         <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">Expenses Log</h4>
@@ -429,68 +442,52 @@
                 </div>
             </div>
 
-            <!-- TAB 5: NEW MONTHLY ARCHIVE / HISTORICAL RECORDS SEARCH -->
+            <!-- TAB 5: MONTHLY ARCHIVE -->
             <div id="tab-archive" class="tab-content hidden space-y-6">
-                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-                    <div class="border-b border-slate-100 dark:border-slate-700 pb-3">
-                        <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                            <i class="fa-solid fa-clock-rotate-left text-qb-accent"></i> Previous Months Data Search & Records Viewer
-                        </h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Select specific dates or filter by particular expense heads to review historical records.</p>
+                <!-- Archive Navigation / Breadcrumb -->
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200" id="archiveBreadcrumb">
+                        <button onclick="renderArchiveFolders()" class="hover:text-qb-green flex items-center gap-1.5">
+                            <i class="fa-solid fa-folder-closed text-amber-500"></i> Monthly Archive Folders
+                        </button>
                     </div>
+                    <div id="archiveSearchControls" class="hidden flex-1 max-w-2xl flex flex-wrap items-center gap-2">
+                        <input type="date" id="archiveFromDate" onchange="filterArchiveData()" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1 text-xs text-slate-800 dark:text-slate-100">
+                        <input type="date" id="archiveToDate" onchange="filterArchiveData()" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1 text-xs text-slate-800 dark:text-slate-100">
+                        <select id="archiveHeadFilter" onchange="filterArchiveData()" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1 text-xs text-slate-800 dark:text-slate-100">
+                            <option value="">All Heads</option>
+                        </select>
+                        <button onclick="resetArchiveFilters()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 text-xs py-1 px-2.5 rounded-lg font-semibold transition">
+                            Reset Filters
+                        </button>
+                    </div>
+                </div>
 
-                    <!-- Filter Controls -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">From Date</label>
-                            <input type="date" id="archiveFromDate" onchange="filterArchiveData()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-qb-green">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">To Date</label>
-                            <input type="date" id="archiveToDate" onchange="filterArchiveData()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-qb-green">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-slate-600 dark:text-slate-400 font-semibold mb-1">Filter Specific Head</label>
-                            <select id="archiveHeadFilter" onchange="filterArchiveData()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-qb-green">
-                                <option value="">All Heads</option>
-                            </select>
-                        </div>
-                        <div class="flex items-end gap-2">
-                            <button onclick="resetArchiveFilters()" class="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 text-xs py-2 px-3 rounded-lg font-semibold transition">
-                                Reset Filters
+                <!-- Archive Folder Explorer Grid -->
+                <div id="archiveFoldersContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+
+                <!-- Archive Table Container -->
+                <div id="archiveTableContainer" class="hidden bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden p-5 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2">
+                        <h4 id="archiveSubTitle" class="font-bold text-sm text-slate-800 dark:text-slate-100">Sub-Folder Data Log</h4>
+                        <div class="text-xs font-semibold flex items-center gap-3">
+                            <span>Total: <span id="archiveTotalAmount" class="text-rose-600 dark:text-rose-400 font-bold">Rs. 0.00</span></span>
+                            <span>(<span id="archiveMatchCount" class="text-qb-accent font-bold">0</span> entries)</span>
+                            <button onclick="deleteCurrentMonthArchive()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-300 text-xs px-3 py-1 rounded-lg font-semibold transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-trash-can"></i> Delete Month
                             </button>
                         </div>
                     </div>
-                </div>
-
-                <!-- Archive Summary Bar -->
-                <div class="bg-slate-100 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4 text-xs font-semibold">
-                    <div>Total Matching Entries: <span id="archiveMatchCount" class="text-qb-accent font-bold">0</span></div>
-                    <div>Filtered Expenses Total: <span id="archiveTotalAmount" class="text-rose-600 dark:text-rose-400 font-bold">Rs. 0.00</span></div>
-                </div>
-
-                <!-- Archive Table -->
-                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden p-5 space-y-3">
-                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">Historical Records View</h4>
                     <div class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
                         <table class="w-full text-xs text-left text-slate-700 dark:text-slate-300">
-                            <thead class="bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
-                                <tr>
-                                    <th class="p-3">Date</th>
-                                    <th class="p-3">Source</th>
-                                    <th class="p-3">Main Head</th>
-                                    <th class="p-3">Sub Head</th>
-                                    <th class="p-3">Particulars / Note</th>
-                                    <th class="p-3 text-right">Amount (PKR)</th>
-                                </tr>
-                            </thead>
+                            <thead id="archiveTableHeader" class="bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700"></thead>
                             <tbody id="archiveTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 6: CHART OF ACCOUNTS (WITH EDIT & DELETE HEADS) -->
+            <!-- TAB 6: CHART OF ACCOUNTS -->
             <div id="tab-heads" class="tab-content hidden space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <form id="newMainHeadForm" onsubmit="handleSaveNewMainHead(event)" class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
@@ -657,7 +654,7 @@
 
         let db;
         const DB_NAME = "LedgerPro_QB_v2";
-        const DB_VERSION = 1;
+        const DB_VERSION = 2;
 
         function initDatabase() {
             return new Promise((resolve, reject) => {
@@ -668,13 +665,24 @@
                     if (!db.objectStoreNames.contains("cashInput")) db.createObjectStore("cashInput", { keyPath: "id", autoIncrement: true });
                     if (!db.objectStoreNames.contains("pettyTransfers")) db.createObjectStore("pettyTransfers", { keyPath: "id", autoIncrement: true });
                     if (!db.objectStoreNames.contains("heads")) db.createObjectStore("heads", { keyPath: "id" });
+                    if (!db.objectStoreNames.contains("archiveData")) {
+                        const archiveStore = db.createObjectStore("archiveData", { keyPath: "id", autoIncrement: true });
+                        archiveStore.createIndex("yearMonth", "yearMonth", { unique: false });
+                        archiveStore.createIndex("type", "type", { unique: false });
+                        archiveStore.createIndex("originalId", "originalId", { unique: false });
+                    }
                 };
                 request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 request.onerror = (e) => reject("IndexedDB error: " + e.target.errorCode);
             });
         }
 
-        let state = { expenses: [], cashInputs: [], pettyTransfers: [], heads: JSON.parse(JSON.stringify(DEFAULT_HEADS)) };
+        let state = { expenses: [], cashInputs: [], pettyTransfers: [], heads: JSON.parse(JSON.stringify(DEFAULT_HEADS)), archiveData: [] };
+
+        // Active Folder Navigation State
+        let activeArchiveYearMonth = null; 
+        let activeArchiveFolderType = null; 
+        let activeArchiveMonthDisplay = '';
 
         window.addEventListener("DOMContentLoaded", async () => {
             initTheme();
@@ -689,7 +697,33 @@
             await loadAllData();
             refreshUI();
             selectAllHeads(true);
+            
+            // Auto-archive existing data if not already archived
+            await autoArchiveExistingData();
         });
+
+        async function autoArchiveExistingData() {
+            // Check if we need to archive any existing data
+            const archiveExists = state.archiveData.length > 0;
+            
+            if (!archiveExists) {
+                // Archive all existing expenses
+                for (let exp of state.expenses) {
+                    await saveToArchive(exp, 'expense');
+                }
+                // Archive all existing cash inputs
+                for (let c of state.cashInputs) {
+                    await saveToArchive(c, 'cash');
+                }
+                // Archive all existing petty transfers
+                for (let p of state.pettyTransfers) {
+                    await saveToArchive(p, 'petty');
+                }
+                // Reload data to get the new archive entries
+                await loadAllData();
+                refreshUI();
+            }
+        }
 
         function setReportRangeThisMonth() {
             const now = new Date();
@@ -731,8 +765,9 @@
             state.expenses = await dbGetAll("expenses");
             state.cashInputs = await dbGetAll("cashInput");
             state.pettyTransfers = await dbGetAll("pettyTransfers");
-            const savedHeads = await dbGetAll("heads");
+            state.archiveData = await dbGetAll("archiveData");
             
+            const savedHeads = await dbGetAll("heads");
             if (savedHeads.length > 0) {
                 state.heads = savedHeads[0].structure;
             } else {
@@ -750,7 +785,7 @@
             renderHeadsTree();
             renderExportCheckboxList();
             populateArchiveHeadFilter();
-            filterArchiveData();
+            renderArchiveFolders();
         }
 
         function dbGetAll(storeName) {
@@ -789,6 +824,15 @@
             });
         }
 
+        function dbClear(storeName) {
+            return new Promise((resolve) => {
+                const tx = db.transaction(storeName, "readwrite");
+                const store = tx.objectStore(storeName);
+                store.clear();
+                tx.oncomplete = () => resolve();
+            });
+        }
+
         function dbSaveHeadStructure(headsObj) {
             return new Promise((resolve) => {
                 const tx = db.transaction("heads", "readwrite");
@@ -796,6 +840,62 @@
                 store.put({ id: "config", structure: headsObj });
                 tx.oncomplete = () => resolve();
             });
+        }
+
+        // Archive Helper Functions
+        function getYearMonth(dateStr) {
+            return dateStr.slice(0, 7);
+        }
+
+        function getMonthDisplay(ym) {
+            const dateObj = new Date(ym + "-01");
+            return dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+        }
+
+        async function saveToArchive(record, type) {
+            const ym = getYearMonth(record.date);
+            
+            // Check if this record is already archived
+            const existingArchive = await dbGetAll("archiveData");
+            const found = existingArchive.find(a => a.originalId === record.id && a.type === type);
+            
+            if (!found) {
+                const archiveRecord = {
+                    ...record,
+                    yearMonth: ym,
+                    type: type,
+                    archiveDate: new Date().toISOString(),
+                    originalId: record.id
+                };
+                await dbAdd("archiveData", archiveRecord);
+            }
+        }
+
+        async function updateArchiveRecord(record, type) {
+            const allArchive = await dbGetAll("archiveData");
+            const existing = allArchive.find(a => a.originalId === record.id && a.type === type);
+            if (existing) {
+                const updated = { ...existing, ...record };
+                await dbPut("archiveData", updated);
+            } else {
+                await saveToArchive(record, type);
+            }
+        }
+
+        async function deleteArchiveRecord(id, type) {
+            const allArchive = await dbGetAll("archiveData");
+            const toDelete = allArchive.find(a => a.originalId === id && a.type === type);
+            if (toDelete) {
+                await dbDelete("archiveData", toDelete.id);
+            }
+        }
+
+        async function deleteMonthArchive(yearMonth) {
+            const allArchive = await dbGetAll("archiveData");
+            const toDelete = allArchive.filter(a => a.yearMonth === yearMonth);
+            for (let item of toDelete) {
+                await dbDelete("archiveData", item.id);
+            }
         }
 
         function renderFrequentHeadsBar() {
@@ -892,7 +992,12 @@
                 createdAt: new Date().toISOString()
             };
 
-            await dbAdd("expenses", record);
+            const id = await dbAdd("expenses", record);
+            record.id = id;
+            
+            // Save to archive
+            await saveToArchive(record, 'expense');
+            
             document.getElementById("expAmount").value = "";
             document.getElementById("expDesc").value = "";
             await loadAllData();
@@ -909,7 +1014,11 @@
                 createdAt: new Date().toISOString()
             };
 
-            await dbAdd("cashInput", record);
+            const id = await dbAdd("cashInput", record);
+            record.id = id;
+            
+            await saveToArchive(record, 'cash');
+            
             document.getElementById("cashAmount").value = "";
             document.getElementById("cashNote").value = "";
             await loadAllData();
@@ -926,7 +1035,11 @@
                 createdAt: new Date().toISOString()
             };
 
-            await dbAdd("pettyTransfers", record);
+            const id = await dbAdd("pettyTransfers", record);
+            record.id = id;
+            
+            await saveToArchive(record, 'petty');
+            
             document.getElementById("pettyAmount").value = "";
             document.getElementById("pettyNote").value = "";
             await loadAllData();
@@ -934,19 +1047,33 @@
         }
 
         async function deleteExpense(id) {
-            if (confirm("Delete this expense transaction?")) { await dbDelete("expenses", id); await loadAllData(); refreshUI(); }
+            if (confirm("Delete this expense transaction?")) { 
+                await dbDelete("expenses", id); 
+                await deleteArchiveRecord(id, 'expense');
+                await loadAllData(); 
+                refreshUI(); 
+            }
         }
         async function deleteCashInput(id) {
-            if (confirm("Delete HO cash deposit entry?")) { await dbDelete("cashInput", id); await loadAllData(); refreshUI(); }
+            if (confirm("Delete HO cash deposit entry?")) { 
+                await dbDelete("cashInput", id); 
+                await deleteArchiveRecord(id, 'cash');
+                await loadAllData(); 
+                refreshUI(); 
+            }
         }
         async function deletePettyTransfer(id) {
-            if (confirm("Delete petty cash transfer entry?")) { await dbDelete("pettyTransfers", id); await loadAllData(); refreshUI(); }
+            if (confirm("Delete petty cash transfer entry?")) { 
+                await dbDelete("pettyTransfers", id); 
+                await deleteArchiveRecord(id, 'petty');
+                await loadAllData(); 
+                refreshUI(); 
+            }
         }
 
-        /* COMMA-INSENSITIVE EXPENSE FILTER */
         function filterExpenseLog() {
             const rawQuery = document.getElementById("expenseSearchInput").value.trim().toLowerCase();
-            const cleanQuery = rawQuery.replace(/,/g, ''); // strip commas for numerical matching
+            const cleanQuery = rawQuery.replace(/,/g, '');
             const rows = document.querySelectorAll("#expenseTableBody tr");
 
             rows.forEach(row => {
@@ -1138,6 +1265,7 @@
                     rec.amount = parseFloat(document.getElementById("editAmount").value);
                     rec.desc = document.getElementById("editNote").value;
                     await dbPut("expenses", rec);
+                    await updateArchiveRecord(rec, 'expense');
                 }
             } else if (type === 'cash') {
                 const rec = state.cashInputs.find(x => x.id === id);
@@ -1146,6 +1274,7 @@
                     rec.amount = parseFloat(document.getElementById("editAmount").value);
                     rec.note = document.getElementById("editNote").value;
                     await dbPut("cashInput", rec);
+                    await updateArchiveRecord(rec, 'cash');
                 }
             } else if (type === 'petty') {
                 const rec = state.pettyTransfers.find(x => x.id === id);
@@ -1154,6 +1283,7 @@
                     rec.amount = parseFloat(document.getElementById("editAmount").value);
                     rec.note = document.getElementById("editNote").value;
                     await dbPut("pettyTransfers", rec);
+                    await updateArchiveRecord(rec, 'petty');
                 }
             }
 
@@ -1162,7 +1292,7 @@
             refreshUI();
         }
 
-        /* MONTHLY ARCHIVE SEARCH LOGIC */
+        /* MONTHLY ARCHIVE FOLDERS SYSTEM */
         function populateArchiveHeadFilter() {
             const select = document.getElementById("archiveHeadFilter");
             select.innerHTML = '<option value="">All Heads</option>';
@@ -1176,21 +1306,250 @@
             });
         }
 
+        function renderArchiveFolders() {
+            activeArchiveYearMonth = null;
+            activeArchiveFolderType = null;
+
+            document.getElementById("archiveSearchControls").classList.add("hidden");
+            document.getElementById("archiveTableContainer").classList.add("hidden");
+
+            const container = document.getElementById("archiveFoldersContainer");
+            container.innerHTML = "";
+            container.classList.remove("hidden");
+
+            document.getElementById("archiveBreadcrumb").innerHTML = `
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-folder-closed text-amber-500"></i> Monthly Archive Folders</span>`;
+
+            // Get unique year-months from archive data
+            const ymSet = new Set();
+            state.archiveData.forEach(a => ymSet.add(a.yearMonth));
+
+            const sortedYMs = Array.from(ymSet).sort().reverse();
+
+            if (sortedYMs.length === 0) {
+                container.innerHTML = `<div class="col-span-full p-8 text-center text-slate-400 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">No monthly archives available yet. Start adding transactions to create archives.</div>`;
+                return;
+            }
+
+            sortedYMs.forEach(ym => {
+                const monthName = getMonthDisplay(ym);
+                
+                // Count entries per type for this month
+                const monthArchives = state.archiveData.filter(a => a.yearMonth === ym);
+                const hoCount = monthArchives.filter(a => a.type === 'cash').length;
+                const pettyCount = monthArchives.filter(a => a.type === 'petty').length;
+                const expenseCount = monthArchives.filter(a => a.type === 'expense').length;
+
+                const card = document.createElement("div");
+                card.className = "archive-folder-card bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm hover:border-qb-green transition cursor-pointer group";
+                card.onclick = () => openArchiveMonthFolder(ym, monthName);
+
+                card.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="relative">
+                            <i class="fa-solid fa-folder text-amber-400 text-4xl group-hover:text-amber-500 transition sub-folder-icon"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">${monthName}</h4>
+                            <div class="flex flex-wrap gap-1.5 mt-1.5">
+                                <span class="inline-flex items-center gap-1 text-[10px] bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                    <i class="fa-solid fa-building-columns text-[9px]"></i> ${hoCount}
+                                </span>
+                                <span class="inline-flex items-center gap-1 text-[10px] bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                                    <i class="fa-solid fa-hand-holding-dollar text-[9px]"></i> ${pettyCount}
+                                </span>
+                                <span class="inline-flex items-center gap-1 text-[10px] bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
+                                    <i class="fa-solid fa-receipt text-[9px]"></i> ${expenseCount}
+                                </span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 mt-1 block">${monthArchives.length} total entries</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="event.stopPropagation(); deleteMonthArchivePrompt('${ym}')" class="text-slate-400 hover:text-rose-600 transition p-1" title="Delete this month's archive">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </div>`;
+                container.appendChild(card);
+            });
+        }
+
+        function deleteMonthArchivePrompt(yearMonth) {
+            const monthName = getMonthDisplay(yearMonth);
+            if (confirm(`Are you sure you want to delete ALL archive data for ${monthName}?\n\nThis action cannot be undone.`)) {
+                deleteMonthArchive(yearMonth);
+                loadAllData().then(() => {
+                    refreshUI();
+                    renderArchiveFolders();
+                });
+            }
+        }
+
+        async function deleteCurrentMonthArchive() {
+            if (!activeArchiveYearMonth) return;
+            const monthName = getMonthDisplay(activeArchiveYearMonth);
+            if (confirm(`Are you sure you want to delete ALL archive data for ${monthName}?\n\nThis will remove all archived entries for this month. This action cannot be undone.`)) {
+                await deleteMonthArchive(activeArchiveYearMonth);
+                await loadAllData();
+                refreshUI();
+                renderArchiveFolders();
+            }
+        }
+
+        function openArchiveMonthFolder(ym, monthName) {
+            activeArchiveYearMonth = ym;
+            activeArchiveFolderType = null;
+            activeArchiveMonthDisplay = monthName;
+
+            document.getElementById("archiveSearchControls").classList.add("hidden");
+            document.getElementById("archiveTableContainer").classList.add("hidden");
+
+            const container = document.getElementById("archiveFoldersContainer");
+            container.innerHTML = "";
+            container.classList.remove("hidden");
+
+            document.getElementById("archiveBreadcrumb").innerHTML = `
+                <button onclick="renderArchiveFolders()" class="hover:text-qb-green flex items-center gap-1.5"><i class="fa-solid fa-folder-closed text-amber-500"></i> Monthly Archive Folders</button>
+                <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                <span class="text-qb-green font-bold flex items-center gap-1"><i class="fa-solid fa-folder-open text-amber-500"></i> ${monthName}</span>
+                <button onclick="deleteMonthArchivePrompt('${ym}')" class="ml-2 text-rose-500 hover:text-rose-700 text-xs flex items-center gap-1">
+                    <i class="fa-solid fa-trash-can"></i> Delete Month
+                </button>`;
+
+            const subFolders = [
+                { type: 'cash', title: 'Head Office Cash Entries', icon: 'fa-building-columns text-emerald-500' },
+                { type: 'petty', title: 'Petty Cash Transfers', icon: 'fa-hand-holding-dollar text-amber-500' },
+                { type: 'expense', title: 'Expenses Log', icon: 'fa-receipt text-rose-500' }
+            ];
+
+            // Get counts for each type in this month
+            const monthArchives = state.archiveData.filter(a => a.yearMonth === ym);
+            
+            subFolders.forEach(sub => {
+                const count = monthArchives.filter(a => a.type === sub.type).length;
+                const card = document.createElement("div");
+                card.className = "archive-folder-card bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm hover:border-qb-green transition cursor-pointer group";
+                card.onclick = () => openArchiveSubFolder(sub.type, sub.title, monthName);
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid ${sub.icon} text-2xl sub-folder-icon"></i>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-xs text-slate-800 dark:text-slate-100">${sub.title}</h4>
+                            <span class="text-[10px] text-slate-400">${count} entries • Search & Filter</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-qb-green transition"></i>
+                    </div>`;
+                container.appendChild(card);
+            });
+        }
+
+        function openArchiveSubFolder(subType, subTitle, monthName) {
+            activeArchiveFolderType = subType;
+
+            document.getElementById("archiveFoldersContainer").classList.add("hidden");
+            document.getElementById("archiveTableContainer").classList.remove("hidden");
+            document.getElementById("archiveSearchControls").classList.remove("hidden");
+
+            document.getElementById("archiveBreadcrumb").innerHTML = `
+                <button onclick="renderArchiveFolders()" class="hover:text-qb-green flex items-center gap-1.5"><i class="fa-solid fa-folder-closed text-amber-500"></i> Archive</button>
+                <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                <button onclick="openArchiveMonthFolder('${activeArchiveYearMonth}', '${monthName}')" class="hover:text-qb-green">${monthName}</button>
+                <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                <span class="text-qb-green font-bold">${subTitle}</span>`;
+
+            document.getElementById("archiveSubTitle").textContent = `${monthName} - ${subTitle}`;
+
+            const headFilter = document.getElementById("archiveHeadFilter");
+            if (subType === 'expense') {
+                headFilter.classList.remove("hidden");
+            } else {
+                headFilter.classList.add("hidden");
+            }
+
+            resetArchiveFilters();
+        }
+
         function filterArchiveData() {
+            if (!activeArchiveYearMonth || !activeArchiveFolderType) return;
+
             const fromDate = document.getElementById("archiveFromDate").value;
             const toDate = document.getElementById("archiveToDate").value;
             const selectedHead = document.getElementById("archiveHeadFilter").value;
 
+            const header = document.getElementById("archiveTableHeader");
             const tbody = document.getElementById("archiveTableBody");
+
+            header.innerHTML = "";
             tbody.innerHTML = "";
 
-            let filtered = state.expenses.filter(exp => {
+            // Get data from archive store
+            let dataSet = state.archiveData.filter(a => 
+                a.yearMonth === activeArchiveYearMonth && 
+                a.type === activeArchiveFolderType
+            );
+
+            // Also include current data for this month (in case some entries haven't been archived yet)
+            if (activeArchiveFolderType === 'cash') {
+                const currentData = state.cashInputs.filter(c => getYearMonth(c.date) === activeArchiveYearMonth);
+                const existingIds = new Set(dataSet.map(d => d.originalId));
+                currentData.forEach(c => {
+                    if (!existingIds.has(c.id)) {
+                        dataSet.push({ ...c, type: 'cash', yearMonth: activeArchiveYearMonth, originalId: c.id });
+                    }
+                });
+            } else if (activeArchiveFolderType === 'petty') {
+                const currentData = state.pettyTransfers.filter(p => getYearMonth(p.date) === activeArchiveYearMonth);
+                const existingIds = new Set(dataSet.map(d => d.originalId));
+                currentData.forEach(c => {
+                    if (!existingIds.has(c.id)) {
+                        dataSet.push({ ...c, type: 'petty', yearMonth: activeArchiveYearMonth, originalId: c.id });
+                    }
+                });
+            } else if (activeArchiveFolderType === 'expense') {
+                const currentData = state.expenses.filter(e => getYearMonth(e.date) === activeArchiveYearMonth);
+                const existingIds = new Set(dataSet.map(d => d.originalId));
+                currentData.forEach(c => {
+                    if (!existingIds.has(c.id)) {
+                        dataSet.push({ ...c, type: 'expense', yearMonth: activeArchiveYearMonth, originalId: c.id });
+                    }
+                });
+            }
+
+            // Set up headers
+            if (activeArchiveFolderType === 'cash') {
+                header.innerHTML = `
+                    <tr>
+                        <th class="p-3">Date</th>
+                        <th class="p-3">Reference / Note</th>
+                        <th class="p-3 text-right">Amount Received (PKR)</th>
+                    </tr>`;
+            } else if (activeArchiveFolderType === 'petty') {
+                header.innerHTML = `
+                    <tr>
+                        <th class="p-3">Date</th>
+                        <th class="p-3">Custodian / Note</th>
+                        <th class="p-3 text-right">Amount Issued (PKR)</th>
+                    </tr>`;
+            } else if (activeArchiveFolderType === 'expense') {
+                header.innerHTML = `
+                    <tr>
+                        <th class="p-3">Date</th>
+                        <th class="p-3">Source</th>
+                        <th class="p-3">Main Head</th>
+                        <th class="p-3">Sub Head</th>
+                        <th class="p-3">Particulars / Note</th>
+                        <th class="p-3 text-right">Amount (PKR)</th>
+                    </tr>`;
+            }
+
+            let filtered = dataSet.filter(item => {
                 let matchDate = true;
                 let matchHead = true;
 
-                if (fromDate && exp.date < fromDate) matchDate = false;
-                if (toDate && exp.date > toDate) matchDate = false;
-                if (selectedHead && exp.subHead !== selectedHead) matchHead = false;
+                if (fromDate && item.date < fromDate) matchDate = false;
+                if (toDate && item.date > toDate) matchDate = false;
+                if (activeArchiveFolderType === 'expense' && selectedHead && item.subHead !== selectedHead) matchHead = false;
 
                 return matchDate && matchHead;
             });
@@ -1202,24 +1561,41 @@
             document.getElementById("archiveTotalAmount").textContent = `Rs. ${totalSum.toLocaleString('en-PK', {minimumFractionDigits: 2})}`;
 
             if (!filtered.length) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-slate-400">No historical records match your selected criteria.</td></tr>`;
+                const colSpan = activeArchiveFolderType === 'expense' ? 6 : 3;
+                tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center p-6 text-slate-400">No entries found matching your selected filters.</td></tr>`;
                 return;
             }
 
             filtered.forEach(item => {
-                const sourceBadge = item.source === "ho" 
-                    ? `<span class="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded font-semibold text-[10px]">HO Balance</span>`
-                    : `<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded font-semibold text-[10px]">Petty Cash</span>`;
+                if (activeArchiveFolderType === 'cash') {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                            <td class="p-3 font-medium text-slate-700 dark:text-slate-300">${item.date}</td>
+                            <td class="p-3 text-slate-600 dark:text-slate-300">${item.note || 'HO Deposit'}</td>
+                            <td class="p-3 text-right font-bold text-qb-green dark:text-emerald-400">Rs. ${Number(item.amount).toLocaleString('en-PK', {minimumFractionDigits: 2})}</td>
+                        </tr>`;
+                } else if (activeArchiveFolderType === 'petty') {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                            <td class="p-3 font-medium text-slate-700 dark:text-slate-300">${item.date}</td>
+                            <td class="p-3 text-slate-600 dark:text-slate-300">${item.note || 'Issued to Petty Cash'}</td>
+                            <td class="p-3 text-right font-bold text-amber-600 dark:text-amber-400">Rs. ${Number(item.amount).toLocaleString('en-PK', {minimumFractionDigits: 2})}</td>
+                        </tr>`;
+                } else if (activeArchiveFolderType === 'expense') {
+                    const sourceBadge = item.source === "ho" 
+                        ? `<span class="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded font-semibold text-[10px]">HO Balance</span>`
+                        : `<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded font-semibold text-[10px]">Petty Cash</span>`;
 
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
-                        <td class="p-3 font-medium text-slate-700 dark:text-slate-300">${item.date}</td>
-                        <td class="p-3">${sourceBadge}</td>
-                        <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-slate-600 dark:text-slate-300 text-[10px] font-medium">${item.mainHead}</span></td>
-                        <td class="p-3 font-semibold text-slate-800 dark:text-slate-100">${item.subHead}</td>
-                        <td class="p-3 text-slate-600 dark:text-slate-300">${item.desc || '-'}</td>
-                        <td class="p-3 text-right font-bold text-rose-600 dark:text-rose-400">Rs. ${Number(item.amount).toLocaleString('en-PK', {minimumFractionDigits: 2})}</td>
-                    </tr>`;
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                            <td class="p-3 font-medium text-slate-700 dark:text-slate-300">${item.date}</td>
+                            <td class="p-3">${sourceBadge}</td>
+                            <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-slate-600 dark:text-slate-300 text-[10px] font-medium">${item.mainHead}</span></td>
+                            <td class="p-3 font-semibold text-slate-800 dark:text-slate-100">${item.subHead}</td>
+                            <td class="p-3 text-slate-600 dark:text-slate-300">${item.desc || '-'}</td>
+                            <td class="p-3 text-right font-bold text-rose-600 dark:text-rose-400">Rs. ${Number(item.amount).toLocaleString('en-PK', {minimumFractionDigits: 2})}</td>
+                        </tr>`;
+                }
             });
         }
 
@@ -1277,7 +1653,6 @@
             }
         }
 
-        /* EDIT & DELETE HEADS IMPLEMENTATION */
         async function editMainCategoryHead(oldName) {
             const newName = prompt("Edit Main Category Name:", oldName);
             if (newName && newName.trim() !== "" && newName !== oldName) {
@@ -1285,13 +1660,15 @@
                 state.heads[trimmed] = state.heads[oldName];
                 delete state.heads[oldName];
 
-                // Update existing expense entries
                 state.expenses.forEach(exp => {
                     if (exp.mainHead === oldName) exp.mainHead = trimmed;
                 });
 
                 await dbSaveHeadStructure(state.heads);
-                for (let exp of state.expenses) { await dbPut("expenses", exp); }
+                for (let exp of state.expenses) { 
+                    await dbPut("expenses", exp); 
+                    await updateArchiveRecord(exp, 'expense');
+                }
                 await loadAllData();
                 refreshUI();
             }
@@ -1314,7 +1691,6 @@
                 if (index !== -1) {
                     state.heads[mainCategory][index] = trimmed;
 
-                    // Update existing expense entries
                     state.expenses.forEach(exp => {
                         if (exp.mainHead === mainCategory && exp.subHead === oldSub) {
                             exp.subHead = trimmed;
@@ -1322,7 +1698,10 @@
                     });
 
                     await dbSaveHeadStructure(state.heads);
-                    for (let exp of state.expenses) { await dbPut("expenses", exp); }
+                    for (let exp of state.expenses) { 
+                        await dbPut("expenses", exp); 
+                        await updateArchiveRecord(exp, 'expense');
+                    }
                     await loadAllData();
                     refreshUI();
                 }
@@ -1592,47 +1971,63 @@
             XLSX.writeFile(wb, `Expense_Report_${fromDate}_to_${toDate}.xlsx`);
         }
 
+        /* -------------------------------------------------------------
+           MONTH-END CLOSEOUT LOGIC - Reset all balances to zero
+           ------------------------------------------------------------- */
         async function triggerMonthEndCloseout() {
             const b = getCalculatedBalances();
             const todayStr = new Date().toISOString().slice(0, 10);
+            
+            const remainingPetty = b.remainingPetty;
+            const hoBalance = b.hoBalance;
 
             const confirmClose = confirm(
                 `PERFORM MONTH-END CLOSEOUT?\n\n` +
-                `Carry Forwards:\n` +
-                `• Remaining HO Cash Balance: PKR ${b.hoBalance.toLocaleString('en-PK')}\n` +
-                `• Remaining Petty Cash Balance: PKR ${b.remainingPetty.toLocaleString('en-PK')}\n\n` +
-                `This will rollover balances and archive/clear current log for the new month.`
+                `Current Balances:\n` +
+                `• Remaining HO Cash Balance: PKR ${hoBalance.toLocaleString('en-PK')}\n` +
+                `• Cash in Hand (Petty Balance): PKR ${remainingPetty.toLocaleString('en-PK')}\n\n` +
+                `System Operations:\n` +
+                `1. Auto-download complete database JSON backup file.\n` +
+                `2. Reset ALL dashboard balances to ZERO.\n` +
+                `3. Total HO Balance will be set to remaining petty cash amount.\n` +
+                `4. Petty Cash Float will be set to remaining petty cash amount.\n` +
+                `5. All historical records remain safely in Monthly Archive.`
             );
 
             if (!confirmClose) return;
 
             exportDataBackup();
 
-            const tx1 = db.transaction("expenses", "readwrite"); await tx1.objectStore("expenses").clear();
-            const tx2 = db.transaction("cashInput", "readwrite"); await tx2.objectStore("cashInput").clear();
-            const tx3 = db.transaction("pettyTransfers", "readwrite"); await tx3.objectStore("pettyTransfers").clear();
+            await dbClear("expenses");
+            await dbClear("cashInput");
+            await dbClear("pettyTransfers");
 
-            if (b.hoBalance > 0) {
+            if (remainingPetty > 0) {
                 await dbAdd("cashInput", {
                     date: todayStr,
-                    amount: b.hoBalance,
-                    note: "Rollover Balance from Previous Month Closeout",
+                    amount: remainingPetty,
+                    note: "Rollover Cash in Hand (Previous Month Petty Cash)",
                     createdAt: new Date().toISOString()
                 });
-            }
 
-            if (b.remainingPetty > 0) {
                 await dbAdd("pettyTransfers", {
                     date: todayStr,
-                    amount: b.remainingPetty,
-                    note: "Rollover Float from Previous Month Closeout",
+                    amount: remainingPetty,
+                    note: "Rollover Float (Previous Month Cash in Hand)",
                     createdAt: new Date().toISOString()
                 });
             }
 
             await loadAllData();
             refreshUI();
-            alert("Month-End Closeout successful!");
+
+            alert(
+                `Month-End Closeout Successfully Executed!\n\n` +
+                `• Backup JSON File Downloaded.\n` +
+                `• All current balances have been reset to ZERO.\n` +
+                `• Cash in Hand (PKR ${remainingPetty.toLocaleString('en-PK')}) added as new HO Cash & Petty Float.\n` +
+                `• All historical records remain safely intact in Monthly Archive.`
+            );
         }
 
         function exportAllExpensesExcel() {
@@ -1663,7 +2058,16 @@
         }
 
         function exportDataBackup() {
-            const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+            const dataToExport = {
+                expenses: state.expenses,
+                cashInputs: state.cashInputs,
+                pettyTransfers: state.pettyTransfers,
+                heads: state.heads,
+                archiveData: state.archiveData,
+                exportedAt: new Date().toISOString(),
+                version: "1.0"
+            };
+            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: "application/json" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
             a.download = `LedgerPro_Backup_${new Date().toISOString().slice(0,10)}.json`;
@@ -1673,23 +2077,114 @@
         function importDataBackup(event) {
             const file = event.target.files[0];
             if (!file) return;
+            
             const reader = new FileReader();
             reader.onload = async (e) => {
-                const imported = JSON.parse(e.target.result);
-                const tx1 = db.transaction("expenses", "readwrite"); await tx1.objectStore("expenses").clear();
-                const tx2 = db.transaction("cashInput", "readwrite"); await tx2.objectStore("cashInput").clear();
-                const tx3 = db.transaction("pettyTransfers", "readwrite"); await tx3.objectStore("pettyTransfers").clear();
-
-                for (let exp of imported.expenses) { delete exp.id; await dbAdd("expenses", exp); }
-                for (let c of imported.cashInputs) { delete c.id; await dbAdd("cashInput", c); }
-                for (let p of (imported.pettyTransfers || [])) { delete p.id; await dbAdd("pettyTransfers", p); }
-                await dbSaveHeadStructure(imported.heads);
-
-                await loadAllData();
-                refreshUI();
-                alert("Database backup restored successfully!");
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    
+                    if (!imported.expenses && !imported.cashInputs && !imported.pettyTransfers) {
+                        throw new Error("Invalid backup file format. Missing required data stores.");
+                    }
+                    
+                    await dbClear("expenses");
+                    await dbClear("cashInput");
+                    await dbClear("pettyTransfers");
+                    await dbClear("archiveData");
+                    
+                    if (imported.heads) {
+                        await dbSaveHeadStructure(imported.heads);
+                    }
+                    
+                    if (imported.expenses && Array.isArray(imported.expenses)) {
+                        for (let exp of imported.expenses) {
+                            const expCopy = { ...exp };
+                            delete expCopy.id;
+                            const newId = await dbAdd("expenses", expCopy);
+                            
+                            if (imported.archiveData && Array.isArray(imported.archiveData)) {
+                                const archiveEntry = imported.archiveData.find(a => 
+                                    a.originalId === exp.id && a.type === 'expense'
+                                );
+                                if (archiveEntry) {
+                                    const newArchive = { ...archiveEntry };
+                                    delete newArchive.id;
+                                    newArchive.originalId = newId;
+                                    await dbAdd("archiveData", newArchive);
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (imported.cashInputs && Array.isArray(imported.cashInputs)) {
+                        for (let c of imported.cashInputs) {
+                            const cCopy = { ...c };
+                            delete cCopy.id;
+                            const newId = await dbAdd("cashInput", cCopy);
+                            
+                            if (imported.archiveData && Array.isArray(imported.archiveData)) {
+                                const archiveEntry = imported.archiveData.find(a => 
+                                    a.originalId === c.id && a.type === 'cash'
+                                );
+                                if (archiveEntry) {
+                                    const newArchive = { ...archiveEntry };
+                                    delete newArchive.id;
+                                    newArchive.originalId = newId;
+                                    await dbAdd("archiveData", newArchive);
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (imported.pettyTransfers && Array.isArray(imported.pettyTransfers)) {
+                        for (let p of imported.pettyTransfers) {
+                            const pCopy = { ...p };
+                            delete pCopy.id;
+                            const newId = await dbAdd("pettyTransfers", pCopy);
+                            
+                            if (imported.archiveData && Array.isArray(imported.archiveData)) {
+                                const archiveEntry = imported.archiveData.find(a => 
+                                    a.originalId === p.id && a.type === 'petty'
+                                );
+                                if (archiveEntry) {
+                                    const newArchive = { ...archiveEntry };
+                                    delete newArchive.id;
+                                    newArchive.originalId = newId;
+                                    await dbAdd("archiveData", newArchive);
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (imported.archiveData && Array.isArray(imported.archiveData)) {
+                        for (let a of imported.archiveData) {
+                            const existingArchive = await dbGetAll("archiveData");
+                            const found = existingArchive.find(e => 
+                                e.originalId === a.originalId && e.type === a.type
+                            );
+                            if (!found) {
+                                const newArchive = { ...a };
+                                delete newArchive.id;
+                                await dbAdd("archiveData", newArchive);
+                            }
+                        }
+                    }
+                    
+                    await loadAllData();
+                    refreshUI();
+                    alert("Database backup restored successfully!");
+                    
+                } catch (error) {
+                    alert("Error restoring backup: " + error.message);
+                    console.error("Restore error:", error);
+                }
+            };
+            reader.onerror = (error) => {
+                alert("Error reading file: " + error.message);
+                console.error("File read error:", error);
             };
             reader.readAsText(file);
+            event.target.value = '';
         }
     </script>
 </body>
